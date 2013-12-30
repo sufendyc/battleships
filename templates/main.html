@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block alerts %}
+
+    <!-- title -->
+    <div class="row">
+        <div class="col-md-12">
+
+            <!-- bot received alert -->
+            <div id="bot-received-alert" class="alert alert-success alert-dismissable" style="display: none;">
+                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+                <strong>Bot received!</strong> We're playing it now against the evil battleships, and will update the leaderboard shortly.
+            </div>
+
+            <!-- bot missing alert -->
+            <div id="bot-missing-alert" class="alert alert-danger alert-dismissable" style="display: none;">
+                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+                <strong>You didn't select a bot file!</strong>
+            </div>
+
+        </div>
+    </div>
+
+{% end %}
+
+{% block content %}
+
+    <!-- bot submission form -->
+    <div class="row">
+        <div class="col-md-6">
+            <h1>BATTLESHIPS &mdash; a global competition open to all employees; use programming to destroy evil and win prizes.</h1>
+            <h3>Watch the video to find out more.</h3>
+            <h3>Upload a bot to play:</h3>
+            <form method="POST" enctype="multipart/form-data" class="form-inline" role="form">
+                <div class="form-group">
+                    <input type="file" name="bot_file">
+                </div>
+                <button type="submit" class="btn btn-success">Submit</button>
+                <button type="button" id="how-to-button" class="btn btn-primary">How to make a bot</button>
+                {% raw xsrf_form_html() %}
+            </form>
+        </div>
+
+        <div class="col-md-6">
+            <iframe width="560" height="315" src="//www.youtube.com/embed/CNLdLKTYNtw" frameborder="0" allowfullscreen></iframe>
+        </div>
+    </div>
+
+    <!-- ranked users -->
+    <div class="row">
+        <div class="col-md-12">
+            <h3>Leaderboard</h3>
+            <table class="table">
+                <thead>
+                    <th>#</th>
+                    <th>Name</th>
+                    <th>Av. Num. Moves To Win</th>
+                    <th>State</th>
+                    <th>Last Played</th>
+                </thead>
+                <tbody>
+                {% for i, user in enumerate(ranked_users) %}
+                    <tr>
+                        <td>{{ i+1 }}</td>
+                        <td><img class="avatar" src="{{ user["facebook"]["picture"]["data"]["url"] }}">{{ user["facebook"]["name"] }}</td>
+                        <td>{{ user["av_num_moves_to_win"] or "-" }}</td>
+                        <td><span class="label label-{{ user["state_category"] }}">{{ user["state"] }}</span></td>
+                        <td><span data-timestamp="{{ user["last_played"] or '' }}"></span></td>
+                    </tr>
+                {% end %}
+                </tbody>
+            </table>
+        </div>
+    </div> <!-- /ranked users -->
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>
+    <script src="//momentjs.com/downloads/moment-with-langs.min.js"></script>
+    <script src="{{ static_url("main.js") }}"></script>
+
+{% end %}
+

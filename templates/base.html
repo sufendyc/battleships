@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Experian BATTLESHIPS</title>
+        <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap.min.css">
+        <link rel="stylesheet" href="{{ static_url("custom.css") }}">
+    </head>
+    <body>
+        <div class="container">
+
+            {% block alerts %}{% end %}
+
+            <!-- title -->
+            <div class="row">
+                <div class="col-md-12">
+                    <a href="/"><img class="logo" src="{{ static_url("experian.png") }}"></a>
+                </div>
+            </div>
+
+            {% block content %}{% end %}
+
+        </div>
+    </body>
+</html>
