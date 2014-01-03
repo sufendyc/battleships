@@ -1,6 +1,5 @@
 import motor
 import os.path
-import sundowner.config
 import sys
 import tornado.auth
 import tornado.gen
