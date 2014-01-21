@@ -1,5 +1,6 @@
 import motor
 import os.path
+import subprocess
 import sys
 import tornado.auth
 import tornado.gen
@@ -91,8 +92,16 @@ class MainHandler(BaseHandler):
         bot_path = "%s/%s" % (self.settings["bot_path"], bot_id)
         f = open(bot_path, "w")
         f.write(bot_file_content)
+        f.close()
         os.chmod(bot_path, 0744)
-
+        
+        # Bot files uploaded from a Windows system cannot natively be executed
+        # on a Linux system so run all files through this converter (from
+        # the package "tofrodos"). It's harmless running this convert on a 
+        # bot uploaded from a Linux system; and easier than detecting the
+        # system type.
+        subprocess.call(["fromdos", bot_path])
+    
         # update the user's data with the bot submission
         user_id = self.get_current_user()["id"]
         yield UsersData(self.settings["db"]).\
