@@ -16,3 +16,13 @@ table {
     font-size: 18px;
 }
 
+#board {
+	width: 400px;
+}
+
+#board tr td{
+	height:	40px;
+	width: 	40px;
+	padding: 0px;
+	margin:		0px;
+}
