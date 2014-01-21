@@ -1,6 +1,7 @@
 $( document ).ready(function() {
     // http://bl.ocks.org/tjdecke/5558084
 
+    // TODO overlay of ship positions from the data that is returned
 
 	var table = $('#table');
 
@@ -85,8 +86,8 @@ $( document ).ready(function() {
 					.data(emptyBoard)
 					.attr('class', function(d, i){
 					  	var classStr = genDefaultClases(d);
-					  	//  current active board give class
-					  	if(i == numMovesMade){
+					  	//  current active board give
+					  	if(i === numMovesMade){
 					  		classStr = classStr + ' active ';
 					  	}
 					  	return classStr;
