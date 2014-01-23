@@ -72,11 +72,9 @@
             </table>
         </div>
     </div> <!-- /ranked users -->
-
-    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-    <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>
-    <script src="//momentjs.com/downloads/moment-with-langs.min.js"></script>
-    <script src="{{ static_url("main.js") }}"></script>
+    {% block js %}
+        <script src="{{ static_url("js/main.js") }}"></script>
+    {% end %}
 
 {% end %}
 

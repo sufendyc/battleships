@@ -49,11 +49,10 @@
         </select>
     </div>
 
-    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-    <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>
-    <script src="//momentjs.com/downloads/moment-with-langs.min.js"></script>
-    <script src="{{ static_url("lodash.js") }}"></script>
-    <script src="{{ static_url("board.js") }}"></script>
-
 {% end %}
 
+{% block js %}
+    <script src="{{ static_url("js/lib/lodash.js") }}"></script>
+    <script src="{{ static_url("js/lib/d3.js")}}"></script>
+    <script src="{{ static_url("js/board.js") }}"></script>
+{% end %}

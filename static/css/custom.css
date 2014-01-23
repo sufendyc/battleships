@@ -1,0 +1,41 @@
+
+img.logo {
+    padding-top: 15px;
+}
+
+img.avatar {
+    padding-right: 10px;
+}
+
+.alert {
+    margin-bottom: 10px;
+    margin-top: 15px;
+}
+
+table {
+    font-size: 18px;
+}
+
+#board {
+	width: 400px;
+}
+
+#board tr td{
+	height:	40px;
+	width: 	40px;
+	padding: 0px;
+	margin:		0px;
+}
+
+body {
+	padding-top: 50px;
+}
+
+.label-large {
+	font-size: 20px
+}
+
+.col-centered{
+    float: none;
+    margin: 0 auto;
+}

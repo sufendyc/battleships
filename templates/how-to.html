@@ -1,122 +1,127 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <title>Experian BATTLESHIPS</title>
-        <link rel="stylesheet" href="{{ static_url("how-to.css") }}">
-    </head>
-    <body>
+{% extends "base.html" %}
+{% block css %}
+        <link rel="stylesheet" href="{{ static_url("css/docs.css") }}">
+{% end %}
+{% block content %}
+    <div class="row">
+        <div class="col-md-3">
+            <div class="bs-sidebar hidden-print affix" role="complementary">
+                <ul class="nav bs-sidenav">
+                    <li>
+                        <a href="#overview">How To</a>
+                    </li>
+                    <li>    
+                        <a href="#samples">Samples</a>
+                        <ul class="nav">
+                            <li><a href="#sample-python">Python</a></li>
+                            <li><a href="#sample-bash">Bash</a></li>
+                            <li><a href="#sample-php">PHP</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="col-md-9" role="main">
+            <div class="bs-docs-section">
+                <div id="page-header">
+                    <h1 id="overview">How To</h1>
+                </div>
+                <p>
+                    A bot is a file that is able to play a game of <a href="http://en.wikipedia.org/wiki/Battleship_(game)" target="_blank">Battleships.</a>
+                </p>
+                <p>
+                    Each time it's the bot's turn to make a move the bot file will be executed and passed the current board state as <a href="http://en.wikipedia.org/wiki/Standard_streams" target="_blank">standard input (stdin)</a>.
+                <p>
+                <p>A board state is a 10-by-10 grid:</p>
+                <div class="mono-font">
+                &nbsp;&nbsp;{% for l in ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"] %}
+                    &nbsp;<strong>{{ l }}</strong>
+                {% end %}<br />
+                {% for y in range(10) %}
+                    {% set i = y+1 %}
+                    <strong>{% raw ("&nbsp;%s" if i < 10 else "%s") % i %}</strong>
+                    {% for x in range(10) %}
+                        {% set i = ((y * 10) + x) %}
+                        {% raw ("&nbsp;%s" if i < 10 else "%s") % i %}
+                    {% end %}
+                    <br />
+                {% end %} 
+                </div><br />
+                </p>
 
-        <a href="/"><img src="{{ static_url("experian.png") }}"></a>
-        <h1>How to make a bot to play BATTLESHIPS</h1>
-        
-        <ol class="section">
-
-            <li>A bot is a file that is able to play a game of <a href="http://en.wikipedia.org/wiki/Battleship_(game)" target="_blank">Battleships</a>.<br /><br /></li>
-
-            <li>Each time it's the bot's turn to make a move the bot file will be executed and passed the current board state as <a href="http://en.wikipedia.org/wiki/Standard_streams" target="_blank">standard input (stdin)</a>.
-            <br /><br />
-
-            A board state is a 10-by-10 grid:<br /><br />
-            <div class="mono-font">
-            &nbsp;&nbsp;{% for l in ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"] %}
-                &nbsp;<strong>{{ l }}</strong>
-            {% end %}<br />
-            {% for y in range(10) %}
-                {% set i = y+1 %}
-                <strong>{% raw ("&nbsp;%s" if i < 10 else "%s") % i %}</strong>
-                {% for x in range(10) %}
-                    {% set i = ((y * 10) + x) %}
-                    {% raw ("&nbsp;%s" if i < 10 else "%s") % i %}
-                {% end %}
-                <br />
-            {% end %} 
-            </div><br />
-
-            It's passed to the bot file as a single comma-separated string.<br />
-            The numbers in the grid show the index positions of the squares in this comma-separated list.<br /><br />
-
-            Each square has one of the following values:
-            <table class="square-val-table">
-                <tr>
-                    <td class="val-col"><strong class="mono-font">-1</strong></td>
-                    <td>Miss</td>
-                </tr>
-                <tr>
-                    <td class="val-col"><strong class="mono-font">0</strong></td>
-                    <td>Unknown</td>
-                </tr>
-                <tr>
-                    <td class="val-col"><strong class="mono-font">1</strong></td>
-                    <td>Hit</td>
-                </tr>
-            </table><br />
-
-            The string received by the bot might look like:
-            <div class="mono-font">
-            -1,0,0,1,0,0...
-            </div><br />
-            </li>
-
-            <li>The bot can look at the board state and must return the index position of the square it would like to try next.<br />
-            The bot might decide it wants to try square <strong>C5</strong> next so it will return <strong>42</strong> (see grid above).<br />
-            To return the value the bot file must write it to standard out.<br /><br />
-            </li>
-
-            <li>That's it! The bot will be repeatedly executed like this until all battleships have been sunk.<br />
-            The bot's score will be based on the number of turns it took.</li>
-
-        </ol>
-
-        <h1>Some sample bots to get you started</h1>
-
-        <p>The following bots are written in various languages but all implement the same simple strategy.<br />
-        First they try square A1, then B1, then C1, scanning the board until eventually all battleships are sunk.<br /><br />
-        </p>
-
-        <table class="bot-sample-table">
-
-            <tr>
-                <td class="lang">Python</td>
-                <td>
+                <p>
+                    It's passed to the bot file as a single comma-separated string.
+                </p>
+                <p>
+                    The numbers in the grid show the index positions of the squares in this comma-separated list.
+                    Each square has one of the following values:
+                </p>
+                <div class="example">
                     <pre>
+1 - Hit
+0 - Unknown
+-1 - Miss</pre>
+                </div>
+
+                <p>
+                    The string received by the bot might look like:
+                </p>
+                <pre>-1,0,0,1,0,0...</pre>
+                <p>
+                    The bot can look at the board state and must return the index position of the square it would like to try next.
+                </p>
+                <p>
+                    The bot might decide it wants to try square <strong>C5</strong> next so it will return <strong>42</strong> (see grid above).
+                </p>
+                <p>
+                    To return the value the bot file must write it to standard out.
+                </p>
+                <p>
+                    That's it! The bot will be repeatedly executed like this until all battleships have been sunk.
+                    The bot's score will be based on the number of turns it took.
+                </p>
+            </div>
+            <div class="bs-docs-section">
+                <div id="page-header">
+                    <h1 id="samples">Samples</h1>
+                </div>
+            
+    <p>The following bots are written in various languages but all implement the same simple strategy.
+    First they try square A1, then B1, then C1, scanning the board until eventually all battleships are sunk.
+    </p>
+    <h2 id="sample-python">Python</h2>
+
+        <pre>
 #!/usr/bin/python
 import sys
 
 def main():
-    shot_grid = sys.argv[1].split(',')
-    for i, state in enumerate(shot_grid):
-        if state == "0": # unknown
-            sys.stdout.write(str(i))
-            return
+shot_grid = sys.argv[1].split(',')
+for i, state in enumerate(shot_grid):
+    if state == "0": # unknown
+        sys.stdout.write(str(i))
+        return
 
 if __name__ == "__main__":
-    main()
-                    </pre>
-                </td>
-            </tr>
-
-            <tr>
-                <td class="lang">Bash</td>
-                <td>
-                    <pre>
+main()
+        </pre>
+    <h2 id="sample-bash">Bash</h2>
+    <pre>
 #!/bin/bash
 
 shot_grid=(${1//,/ })
 for i in "${!shot_grid[@]}"; do
-    state="${shot_grid[$i]}"
-    if [ "$state" == "0" ]; then # unknown
-        echo "$i"
-        exit
-    fi
+state="${shot_grid[$i]}"
+if [ "$state" == "0" ]; then # unknown
+    echo "$i"
+    exit
+fi
 done
-                    </pre>
-                </td>
-            </tr>
+    </pre>
+    <h2 id="sample-php">PHP</h2>
 
-            <tr>
-                <td class="lang">PHP</td>
-                <td>
-                    <pre>
+
+<pre>
 #!/usr/bin/php
 
 &lt;?php
@@ -129,12 +134,9 @@ foreach ($shot_grid as $i =&gt; $state) {
     }
 }
 ?&gt;
-                    </pre>
-                </td>
-            </tr>
+        </pre>
 
-        </table>
-
-    </body>
-</html>
-
+<div style="height:400px"></div>
+</div>
+</div>
+{% end %}
