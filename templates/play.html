@@ -36,11 +36,23 @@
 
     <div class="row">
         <div id="board"></div>
-    </div> 
+    </div>
+    <div id="ship-show" class="btn btn-default">Hide Ships</div>
+
+    <div class="form-group">
+      <label for="animation-speed">Speed</label>
+        <select id="animation-speed" class="form-control">
+          <option value="0">Very Fast</option>
+          <option value="1">Fast</option>
+          <option selected="selected" value="2">Medium</option>
+          <option value="3">Slow</option>
+        </select>
+    </div>
 
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
     <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>
     <script src="//momentjs.com/downloads/moment-with-langs.min.js"></script>
+    <script src="{{ static_url("lodash.js") }}"></script>
     <script src="{{ static_url("board.js") }}"></script>
 
 {% end %}
