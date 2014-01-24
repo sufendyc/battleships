@@ -119,7 +119,15 @@ class HowToHandler(BaseHandler):
     @tornado.web.authenticated
     def get(self):
         """Render the how to page."""
-        self.render("how-to.html") 
+        self.render("how-to.html")
+
+
+class PlayHandler(BaseHandler):
+
+    @tornado.web.authenticated
+    def get(self):
+        """Render the how to page."""
+        self.render("play.html")
 
 
 def main():
@@ -134,6 +142,7 @@ def main():
     application = tornado.web.Application([
         (r"/",              MainHandler),
         (r"/how-to",        HowToHandler),
+        (r"/play",          PlayHandler),
         (r"/auth/login",    AuthLoginHandler),
         ],
         db=             db,

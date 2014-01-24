@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block css %}
+  <link rel="stylesheet" href="{{ static_url("css/play.css") }}">
+{% end %}
+
+{% block js %}
+    <script src="{{ static_url("js/lib/lodash.js") }}"></script>
+    <script src="{{ static_url("js/lib/d3.js")}}"></script>
+    <script src="{{ static_url("js/board.js") }}"></script>
+{% end %}
+
+{% block content %}
+    <h1>Watch your game</h1>
+    <div class="row">
+        <div class="col-md-12">
+          <div id="board"></div>
+        <div>
+    </div>
+    <div class="now">
+      <div class="btn-group">
+        <div class="ship-show btn btn-default">Hide Ships</div>
+        <div class="btn-group change-speed">
+          <div type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+            Medium
+            <span class="caret"></span>
+          </div>
+          <ul class="dropdown-menu">
+            <li><a data-val="0" href="#">Fast</a></li>
+            <li><a data-val="1" href="#">Medium</a></li>
+            <li><a data-val="2" href="#">Slow</a></li>
+          </ul>
+        </div>
+        <div type="button" class="replay btn btn-default">Replay</div>
+        <div type="button" class="new-board btn btn-default">New Board</div>
+      </div>
+    </div>
+{% end %}
+
+

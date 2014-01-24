@@ -3,10 +3,6 @@ body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
-.mono-font {
-    font-family: Courier New, Courier New, monospace;
-}
-
 .square-val-table .val-col {
     width: 40px;
     text-align: center;
