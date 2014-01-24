@@ -30,20 +30,10 @@
                     Each time it's the bot's turn to make a move the bot file will be executed and passed the current board state as <a href="http://en.wikipedia.org/wiki/Standard_streams" target="_blank">standard input (stdin)</a>.
                 <p>
                 <p>A board state is a 10-by-10 grid:</p>
-                <div class="mono-font">
-                &nbsp;&nbsp;{% for l in ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"] %}
-                    &nbsp;<strong>{{ l }}</strong>
-                {% end %}<br />
-                {% for y in range(10) %}
-                    {% set i = y+1 %}
-                    <strong>{% raw ("&nbsp;%s" if i < 10 else "%s") % i %}</strong>
-                    {% for x in range(10) %}
-                        {% set i = ((y * 10) + x) %}
-                        {% raw ("&nbsp;%s" if i < 10 else "%s") % i %}
-                    {% end %}
-                    <br />
-                {% end %} 
-                </div><br />
+                <pre>
+   <strong>{% for l in ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"] %} {{ l }} {% end %}</strong>
+{% for y in range(10) %}{% set i = y+1 %}<strong>{% raw (" %s" if i < 10 else "%s") % i %}</strong> {% for x in range(10) %}{% set i = ((y * 10) + x) %}{% raw (" %s" if i < 10 else "%s") % i %} {% end %}
+{% end %}</pre>
                 </p>
 
                 <p>

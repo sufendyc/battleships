@@ -121,6 +121,7 @@ class HowToHandler(BaseHandler):
         """Render the how to page."""
         self.render("how-to.html")
 
+
 class PlayHandler(BaseHandler):
 
     @tornado.web.authenticated
