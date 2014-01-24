@@ -4,12 +4,15 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
         <title>Experian BATTLESHIPS</title>
-        <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap.min.css">
+        <link rel="stylesheet" href="{{ static_url("css/bootstrap.min.css") }}">
+        <link rel="stylesheet" href="{{ static_url("css/docs.css") }}">
         <link rel="stylesheet" href="{{ static_url("css/custom.css") }}">
         {% block css %}{% end %}
-        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+        <script src="{{ static_url("js/lib/jquery.min.js") }}"></script>
         <script src="{{ static_url("js/lib/bootstrap.min.js") }}"></script>
+<!-- 
         <script src="//momentjs.com/downloads/moment-with-langs.min.js"></script>
+         -->
         {% block js %}{% end %}
     </head>
     <body data-spy="scroll" data-target=".bs-sidebar">
