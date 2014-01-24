@@ -30,18 +30,23 @@ var BoardManager = function(){
 
 	// TODO set up boards into an array to itterate though.
 	// Initialize new board
-	this.board = new Board(this.data, '#board', 400, true);
+	this.board = new Board('#board', 400, true);
 	
 	// Default animation speed
 	this.animationSpeedIdx = 2;
 	this.animationSpeed = this.getAnimationSpeed();
-	this.tick();
 
 	$(".change-speed ul li a").click(function(){
 		$(".change-speed > div").html($(this).text() + ' <span class="caret"></span>');
 		self.animationSpeedIdx = $(this).data().val;
 		self.animationSpeed = self.getAnimationSpeed();
 	});
+
+	$(".change-bot ul li a").click(function(){
+		$(".change-bot > div").html($(this).text() + ' <span class="caret"></span>');
+		$(".change-bot > div").data('val', $(this).data().val);
+	});
+
 
     $('.ship-show').on('click', function(){
     	var $this = $(this);
@@ -51,8 +56,25 @@ var BoardManager = function(){
     	} else {
     		$this.text('Show Ships');
     	}
-		self.board.changeOverlayVisibility(show);
+		self.board.showShips = show;
+		self.board.renderOverlay(self.board.getShipPositions())
     	$this.toggleClass('show-ships');
+    });
+
+	$('.game-start').on('click', function(){
+		self.tickAllowed = false;
+		$.ajax({
+		  dataType: "json",
+		  url: '/game/' + $(".change-bot > div").data().val,
+		  data: {},
+		  success: function(data){
+		  	// Amend data to board
+		  	self.board.onData(data['moves']);
+		  	self.currentTick = 0;
+			self.tickAllowed = true;
+		  	self.tick();
+		  }
+		});
     });
 
     $('.replay').on('click', function(){
@@ -60,17 +82,21 @@ var BoardManager = function(){
     	self.tick();
     });
 }
-BoardManager.prototype.OKToAnimate = true;
 
 BoardManager.prototype.tick = function(){
+	var self = this;
 	if(this.ticking){
 		return
 	} else {
 		this.ticking = true;
 	}
-	var self = this;
+
 	var numMovesTotal = this.data.length;
 	var ticker = function(){
+		if(!self.tickAllowed){
+			self.ticking = false;
+			return
+		}
 		if(self.currentTick < numMovesTotal){
 			setTimeout(function(){
 				self.board.tick(self.currentTick);
@@ -90,10 +116,8 @@ BoardManager.prototype.getAnimationSpeed = function(){
 	return this.animationSpeeds[this.animationSpeedIdx];
 }
 
-var Board = function(data, ele, dimension, shipVisibilty){
+var Board = function(ele, dimension, shipVisibilty){
 
-	this.data = data;
-	this.shipPositions = this.getShipPositions();
 	this.width = dimension;
 	this.height = dimension;
 	this.cellSize = dimension / 10;
@@ -107,18 +131,13 @@ var Board = function(data, ele, dimension, shipVisibilty){
 	          	.append("g");
 
    	this.renderBoard(this.baseBoard);
-   	this.renderOverlay();
-   	this.changeOverlayVisibility(this.shipVisibilty);
+
+   	this.showShips = true;
 }
 
-Board.prototype.reset = function(){
-	this.svg.selectAll(".cell")
-		.each(function(d){
-			d.result = 0;
-		})
-		.attr('class', function(d, i){
-		  	return 'cell empty bordered'
-		});
+Board.prototype.onData = function(data){
+	this.data = data;
+  	this.renderOverlay(this.getShipPositions());
 }
 
 Board.prototype.resultClasses = ['miss', 'empty', 'hit'];
@@ -130,25 +149,29 @@ Board.prototype.getShipPositions = function(){
 		}
 		return acc;
 	}, []);
-
 }
 
-Board.prototype.renderOverlay = function(){
-	// Draw ship positions
+Board.prototype.renderOverlay = function(data){
 	var cellSize = this.cellSize;
 	var circleHeight = cellSize / 2;
 	var self = this;
-   	this.svg.selectAll(".ship")
-	  .data(self.shipPositions)
-	  .enter()
+
+	var cells = this.svg.selectAll(".ship")
+		.data(data);
+
+   	cells
+   	  .enter()
 	  .append("rect")
-	  .attr("x", function(d,i) { return self.baseBoard[d].xPos + cellSize / 2 / 2 })
+	
+	cells
+	  .attr("x", function(d,i) { debugger;return self.baseBoard[d].xPos + cellSize / 2 / 2 })
 	  .attr("y", function(d,i) { return self.baseBoard[d].yPos + cellSize / 2 / 2 })
 	  .attr("rx", 4)
 	  .attr("ry", 4)
 	  .attr("class", 'ship')
 	  .attr("width", circleHeight)
 	  .attr("height", circleHeight)
+	  .classed('hide', function(d) { return !self.showShips });
 }
 
 Board.prototype.tick = function(idx){
@@ -190,11 +213,6 @@ Board.prototype.renderBoard = function(data){
 	cells.attr("class", function(d){
 	  	return self.genDefaultClasses(d);
 	  })
-}
-
-Board.prototype.changeOverlayVisibility = function(show){
-	this.svg.selectAll(".ship")
-		.classed('hide', function(d) { return !show })
 }
 
 Board.prototype.genBaseBoard = function(){

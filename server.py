@@ -1,7 +1,9 @@
+import datetime
 import motor
 import os.path
 import subprocess
 import sys
+import time
 import tornado.auth
 import tornado.gen
 import tornado.ioloop
@@ -101,6 +103,8 @@ class MainHandler(BaseHandler):
         # the package "tofrodos"). It's harmless running this convert on a 
         # bot uploaded from a Linux system; and easier than detecting the
         # system type.
+
+        # This was causing an error when loading locally
         subprocess.call(["fromdos", bot_path])
     
         # update the user's data with the bot submission
@@ -126,9 +130,25 @@ class HowToHandler(BaseHandler):
 class PlayHandler(BaseHandler):
 
     @tornado.web.authenticated
+    @tornado.web.asynchronous
+    @tornado.gen.coroutine
     def get(self):
         """Render the page for showing game visualisations."""
-        self.render("play.html")
+
+        # get bot data from the database
+        user_id = self.get_current_user()["id"]
+        user = yield UsersData(self.settings["db"]).read(user_id)
+
+        # convert ObjectIds to strings for JSON serialisation
+        bots = user["bots"]
+
+        def fmt(bot):
+            bot["bot_id"] = str(bot["bot_id"])
+            bot["friendly_time"]   = datetime.datetime.fromtimestamp(bot['created_time'])\
+                .strftime('%H:%M:%S %Y-%m-%d')
+        map(fmt, bots)
+        bots = sorted(bots, key=lambda b: -b['created_time'])
+        self.render("play.html", bots=bots, botlen=len(bots))
 
 
 class BotsHandler(BaseHandler):
