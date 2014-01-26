@@ -133,8 +133,9 @@ class ShipManager(object):
 
 class GameManager(object):
 
+    # TODO allow a seed to be passed
     @classmethod
-    def play(cls, bot_path, interactive=False):
+    def play(cls, bot_path):
         """Generate a random ship arragement and play the game until the bot
         has hit/sunk all ships. The number of moves taken by the bot is
         returned.
@@ -142,27 +143,34 @@ class GameManager(object):
         A BotIllegalMoveException is raised if the bot attempts to play an
         illegal move.
 
-        If `interactive` is true then the game state is printed to stdout
-        after every bot move. The user is required to press the return key
-        to proceed to the next move.
+        Returns a summary of the game.
+
+            `ships`: a list of grid squares indicating which are occupied by
+                ships (1) and which are just sea (0)
+
+            `moves`: a list of moves made by the bot and their outcome, of the
+                form [(move_grid_index, hit_or_miss), ...] eg:
+
+                    [(3, -1), (13, 1), (14, 1), (39, -1), ...]
+
         """
 
         # init game state
         ship_grid = Grid(ShipGridSquareState.SEA)
         shot_grid = Grid(ShotGridSquareState.UNKNOWN)
         ShipManager.arrange_on_grid(ship_grid)
-        bot_turns = 0
 
-        # repeatedly ask the bot to play moves until all ships are hit/sunk,
-        # counting the number of moves made
+        # repeatedly ask the bot to play moves until all ships are hit/sunk
+        moves = []
         while not cls._all_ships_hit(shot_grid):
-            cls._play_next_bot_move(bot_path, ship_grid, shot_grid)
-            if interactive:
-                print_game_state(ship_grid, shot_grid)
-                raw_input()
-            bot_turns += 1
+            move = cls._play_next_bot_move(bot_path, ship_grid, shot_grid)
+            moves.append(move)
 
-        return bot_turns
+        # return a summary of the game
+        return {
+            "moves": moves,
+            "ships": ship_grid.squares,
+            }
 
     @staticmethod
     def _all_ships_hit(shot_grid):
@@ -200,6 +208,9 @@ class GameManager(object):
         val = ShotGridSquareState.HIT if hit else ShotGridSquareState.MISS
         shot_grid.put(x, y, val)
 
+        # return move summary
+        return (bot_move, val)
+
 
 class IllegalBotMoveException(Exception):
     pass
@@ -216,33 +227,12 @@ class TournamentManager(object):
     def play(bot_path, num_games):
         scores = []
         for _ in range(num_games):
-            bot_turns = GameManager.play(bot_path)
-            scores.append(bot_turns)
+            summary = GameManager.play(bot_path)
+            num_moves = len(summary["moves"])
+            scores.append(num_moves)
         average = sum(scores) / float(num_games)
         return average
 
-
-# Debug ------------------------------------------------------------------------
-
-def print_grid(grid):
-    """Print a 2D representation of a Grid object to stdout."""
-    output = []
-    for y in range(grid.SIZE):
-        for x in range(grid.SIZE):
-            val = grid.get(x, y)
-            output.append("%02d " % val)
-        output.append('\n')
-    print ''.join(output) 
-
-def print_game_state(ship_grid, shot_grid):
-    """Print the ship and shot grids to stdout."""
-    os.system("clear")
-    print "SHIPS"
-    print_grid(ship_grid)
-    print
-    print "SHOTS"
-    print_grid(shot_grid)
- 
 
 # Main -------------------------------------------------------------------------
 

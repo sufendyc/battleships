@@ -1,7 +1,9 @@
+import datetime
 import motor
 import os.path
 import subprocess
 import sys
+import time
 import tornado.auth
 import tornado.gen
 import tornado.ioloop
@@ -10,6 +12,7 @@ import yaml
 from bson.objectid import ObjectId
 from data import UsersDataAsync as UsersData
 from queue import BotQueue
+from worker import GameManager
 
 
 class BaseHandler(tornado.web.RequestHandler):
@@ -100,6 +103,8 @@ class MainHandler(BaseHandler):
         # the package "tofrodos"). It's harmless running this convert on a 
         # bot uploaded from a Linux system; and easier than detecting the
         # system type.
+
+        # This was causing an error when loading locally
         subprocess.call(["fromdos", bot_path])
     
         # update the user's data with the bot submission
@@ -110,7 +115,7 @@ class MainHandler(BaseHandler):
         # put the bot in the queue for processing
         BotQueue.add(user_id, bot_id)
 
-        # display the bot recevied alert informing the user what happens next
+        # display the bot received alert informing the user what happens next
         self.redirect("/#bot-received")
 
 
@@ -125,9 +130,63 @@ class HowToHandler(BaseHandler):
 class PlayHandler(BaseHandler):
 
     @tornado.web.authenticated
+    @tornado.web.asynchronous
+    @tornado.gen.coroutine
     def get(self):
-        """Render the how to page."""
-        self.render("play.html")
+        """Render the page for showing game visualisations."""
+
+        # get bot data from the database
+        user_id = self.get_current_user()["id"]
+        user = yield UsersData(self.settings["db"]).read(user_id)
+
+        # convert ObjectIds to strings for JSON serialisation
+        bots = user["bots"]
+
+        def fmt(bot):
+            bot["bot_id"] = str(bot["bot_id"])
+            bot["friendly_time"]   = datetime.datetime.fromtimestamp(bot['created_time'])\
+                .strftime('%H:%M:%S %Y-%m-%d')
+        map(fmt, bots)
+        bots = sorted(bots, key=lambda b: -b['created_time'])
+        self.render("play.html", bots=bots, botlen=len(bots))
+
+
+class BotsHandler(BaseHandler):
+
+    @tornado.web.authenticated
+    @tornado.web.asynchronous
+    @tornado.gen.coroutine
+    def get(self):
+        """Return details of all the bots submitted by the current user."""
+
+        # get bot data from the database
+        user_id = self.get_current_user()["id"]
+        user = yield UsersData(self.settings["db"]).read(user_id)
+
+        # convert ObjectIds to strings for JSON serialisation
+        bots = user["bots"]
+        def fmt(bot):
+            bot["bot_id"] = str(bot["bot_id"])
+        map(fmt, bots)
+
+        self.write({"bots": bots})
+    
+
+# TODO playing even a single game could take a non-trivial amount of time so
+# this should really be done asynchronously with the client perhaps being given
+# a game token that they can use to check on game progress and ultimately use
+# to retrieve the game summary.
+class GameHandler(BaseHandler):
+
+    @tornado.web.authenticated
+    def get(self, bot_id):
+        """Return the summary of a game whose ship arrangement is seeded by
+        `seed` and playing with bot `bot_id`.
+        """
+        # TODO how are errors handled?
+        bot_path = "%s/%s" % (self.settings["bot_path"], bot_id)
+        summary = GameManager.play(bot_path)
+        self.write(summary)
 
 
 def main():
@@ -140,10 +199,12 @@ def main():
     db = motor.MotorClient().open_sync().battleships
 
     application = tornado.web.Application([
-        (r"/",              MainHandler),
-        (r"/how-to",        HowToHandler),
-        (r"/play",          PlayHandler),
-        (r"/auth/login",    AuthLoginHandler),
+        (r"/",                          MainHandler),
+        (r"/how-to/?",                  HowToHandler),
+        (r"/play/?",                    PlayHandler),
+        (r"/bots/?",                    BotsHandler),
+        (r"/game/([0-9a-f]{24})/?",     GameHandler),
+        (r"/auth/login/?",              AuthLoginHandler),
         ],
         db=             db,
         cookie_secret=  conf["cookie-secret"],

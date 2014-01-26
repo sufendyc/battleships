@@ -1,9 +1,5 @@
 {% extends "base.html" %}
 
-{% block css %}
-  <link rel="stylesheet" href="{{ static_url("css/play.css") }}">
-{% end %}
-
 {% block js %}
     <script src="{{ static_url("js/lib/lodash.js") }}"></script>
     <script src="{{ static_url("js/lib/d3.js")}}"></script>
@@ -19,6 +15,20 @@
     </div>
     <div class="now">
       <div class="btn-group">
+        <div class="game-start btn btn-default">Start New</div>
+         <div class="btn-group change-bot">
+          <div type="button" data-val="{{ bots[0]['bot_id'] }}"  class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+            Generation {{ len(bots) }} - {{ bots[0]['friendly_time'] }}
+            <span class="caret"></span>
+          </div>
+          <ul class="dropdown-menu">
+            {% for i, bot in enumerate(bots) %}
+              <li><a data-val="{{ bot['bot_id']}}" href="#">Generation {{ botlen - i }} - {{ bot['friendly_time']}}</a></li>
+            {% end %}
+
+          </ul>
+        </div>
+        <div type="button" class="replay btn btn-default">Restart</div>
         <div class="ship-show btn btn-default">Hide Ships</div>
         <div class="btn-group change-speed">
           <div type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
@@ -31,10 +41,9 @@
             <li><a data-val="2" href="#">Slow</a></li>
           </ul>
         </div>
-        <div type="button" class="replay btn btn-default">Replay</div>
-        <div type="button" class="new-board btn btn-default">New Board</div>
       </div>
     </div>
+
 {% end %}
 
 
