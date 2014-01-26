@@ -164,7 +164,7 @@ Board.prototype.renderOverlay = function(data){
 	  .append("rect")
 	
 	cells
-	  .attr("x", function(d,i) { debugger;return self.baseBoard[d].xPos + cellSize / 2 / 2 })
+	  .attr("x", function(d,i) { return self.baseBoard[d].xPos + cellSize / 2 / 2 })
 	  .attr("y", function(d,i) { return self.baseBoard[d].yPos + cellSize / 2 / 2 })
 	  .attr("rx", 4)
 	  .attr("ry", 4)
