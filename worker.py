@@ -4,6 +4,7 @@ For game rules see:
 http://en.wikipedia.org/wiki/Battleship_(game)
 """
 
+import logging.config
 import os
 import os.path
 import random
@@ -133,6 +134,8 @@ class ShipManager(object):
 
 class GameManager(object):
 
+    _log = logging.getLogger("worker")
+
     # TODO allow a seed to be passed
     @classmethod
     def play(cls, bot_path):
@@ -155,6 +158,9 @@ class GameManager(object):
 
         """
 
+        bot_id = os.path.split(bot_path)[1]
+        cls._log.info("%s bot started game" % bot_id)
+
         # init game state
         ship_grid = Grid(ShipGridSquareState.SEA)
         shot_grid = Grid(ShotGridSquareState.UNKNOWN)
@@ -167,6 +173,8 @@ class GameManager(object):
             moves.append(move)
 
         # return a summary of the game
+        cls._log.info(
+            "%s bot completed game in %s moves" % (bot_id, len(moves)))
         return {
             "moves": moves,
             "ships": ship_grid.squares,
@@ -223,13 +231,22 @@ class TournamentManager(object):
     `num_games` games.
     """
 
-    @staticmethod
-    def play(bot_path, num_games):
+    _log = logging.getLogger("worker")
+
+    @classmethod
+    def play(cls, bot_path, num_games):
+
+        bot_id = os.path.split(bot_path)[1]
+        cls._log.info("%s bot started tournament" % bot_id)
+
         scores = []
-        for _ in range(num_games):
+        for i in range(num_games):
             summary = GameManager.play(bot_path)
             num_moves = len(summary["moves"])
             scores.append(num_moves)
+            cls._log.info(
+                "%s bot completed game %s/%s of tournament" % \
+                    (bot_id, i+1, num_games))
         average = sum(scores) / float(num_games)
         return average
 
@@ -237,6 +254,12 @@ class TournamentManager(object):
 # Main -------------------------------------------------------------------------
 
 def main():
+
+    # init logging
+    logging_conf_path = os.path.join(
+        os.path.dirname(__file__), "conf", "logging.yaml")
+    logging_conf = yaml.load(open(logging_conf_path))
+    logging.config.dictConfig(logging_conf)
 
     # load config
     with open(os.path.join(os.path.dirname(__file__), "config.yaml")) as f:

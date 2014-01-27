@@ -1,4 +1,5 @@
 import datetime
+import logging.config
 import motor
 import os.path
 import subprocess
@@ -190,6 +191,12 @@ class GameHandler(BaseHandler):
 
 
 def main():
+
+    # init logging
+    logging_conf_path = os.path.join(
+        os.path.dirname(__file__), "conf", "logging.yaml")
+    logging_conf = yaml.load(open(logging_conf_path))
+    logging.config.dictConfig(logging_conf)
 
     # load config
     with open(os.path.join(os.path.dirname(__file__), "config.yaml")) as f:
