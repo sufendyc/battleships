@@ -67,21 +67,7 @@ class UsersDataSync(object):
     _conn = pymongo.MongoClient().battleships.users 
 
     @classmethod
-    def update_bot_illegal_move(cls, user_id):
-        """Update a user's record following the latest bot to be uploaded 
-        making an illegal move during testing.
-        """
-        now = long(time.time())
-        cls._conn.update({"_id": user_id}, {
-            "$set": {
-                "last_played":      now, 
-                "state":            "bot made illegal move",
-                "state_category":   "danger",
-                }
-            }) 
-
-    @classmethod
-    def update_bot_error(cls, user_id):
+    def update_bot_rejected(cls, user_id, error):
         """Update a user's record following the latest bot to be uploaded 
         raising an error during testing.
         """
@@ -89,8 +75,9 @@ class UsersDataSync(object):
         cls._conn.update({"_id": user_id}, {
             "$set": {
                 "last_played":      now, 
-                "state":            "bot raised error",
+                "state":            "rejected",
                 "state_category":   "danger",
+                "bot_error":        error.data,
                 }
             }) 
 
@@ -104,7 +91,7 @@ class UsersDataSync(object):
         update = { 
             "last_played":      now, 
             "state":            "success",
-            "state_category":   "danger",
+            "bot_error":        None,
             }
         
         # if this is the user's best effort, update their score

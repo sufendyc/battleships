@@ -8,6 +8,7 @@ import logging.config
 import os
 import os.path
 import random
+import signal
 import subprocess
 import time
 import traceback
@@ -135,6 +136,7 @@ class ShipManager(object):
 class GameManager(object):
 
     _log = logging.getLogger("worker")
+    _BOT_MOVE_TIMEOUT = 10 # max secs a bot can take to make a move
 
     # TODO allow a seed to be passed
     @classmethod
@@ -191,25 +193,52 @@ class GameManager(object):
             lambda x: x == ShotGridSquareState.HIT, shot_grid.squares)
         return len(hits) == sum(ShipManager.SHIPS)
 
-    @staticmethod
-    def _play_next_bot_move(bot_path, ship_grid, shot_grid):
+    @classmethod
+    def _play_next_bot_move(cls, bot_path, ship_grid, shot_grid):
         """Run the bot script against the current `shot_grid` to obtain the
         next move, then attempt to update the `shot_grid` by playing the move.
         """
 
-        # get next bot move from bot script
-        bot_move = subprocess.check_output([bot_path, str(shot_grid)])
+        # Get next bot move from bot script. 
+        # Raise `BotMoveTimeoutException` if the bot takes too long to move:
+        # http://stackoverflow.com/questions/1191374/subprocess-with-timeout
+        # Raise `BotErrorException` if the bot raises an error during 
+        # execution.
+        def alarm_handler(signum, frame):
+            raise BotMoveTimeoutException({
+                "game_state":   str(shot_grid),
+                })
+        signal.signal(signal.SIGALRM, alarm_handler)
+        signal.alarm(cls._BOT_MOVE_TIMEOUT)
+        try:
+            bot_move = subprocess.check_output([bot_path, str(shot_grid)])
+        except (subprocess.CalledProcessError, OSError):
+            traceback.print_exc() # debug
+            raise BotErrorException({
+                "game_state":   str(shot_grid),
+                })
+        finally:
+            signal.alarm(0)
 
         # validate the bot move
         try:
             bot_move = int(bot_move)
         except ValueError:
-            raise IllegalBotMoveException
+            raise BotMoveIllegalException({
+                "game_state":   str(shot_grid),
+                "move":         str(bot_move),
+                })
         if bot_move < 0 or bot_move >= len(shot_grid.squares):
-            raise IllegalBotMoveException
+            raise BotMoveIllegalException({
+                "game_state":   str(shot_grid),
+                "move":         bot_move,
+                })
         x, y = Grid.index_to_coord(bot_move)
         if shot_grid.get(x, y) != ShotGridSquareState.UNKNOWN:
-            raise IllegalBotMoveException
+            raise BotMoveIllegalException({
+                "game_state":   str(shot_grid),
+                "move":         bot_move,
+                })
 
         # make bot move
         hit = ship_grid.get(x, y) == ShipGridSquareState.SHIP
@@ -220,8 +249,24 @@ class GameManager(object):
         return (bot_move, val)
 
 
-class IllegalBotMoveException(Exception):
-    pass
+class BotException(Exception):
+    """Abstract superclass for all bot exception."""
+
+    def __init__(self, data):
+        data["type"] = self.__class__.__name__
+        self.data = data
+
+
+class BotMoveIllegalException(BotException): 
+    """The bot made an illegal move."""
+
+
+class BotMoveTimeoutException(BotException): 
+    """The bot took too long to make a move."""
+
+
+class BotErrorException(BotException):
+    """The bot encountered an error during execution."""
 
 
 # Tournament Manager -----------------------------------------------------------
@@ -262,7 +307,8 @@ def main():
     logging.config.dictConfig(logging_conf)
 
     # load config
-    with open(os.path.join(os.path.dirname(__file__), "config.yaml")) as f:
+    conf_path = os.path.join(os.path.dirname(__file__), "conf", "system.yaml")
+    with open(conf_path) as f:
         conf = yaml.load(f)
 
     # indefinitely process bot queue
@@ -273,11 +319,8 @@ def main():
         try:
             av_num_moves_to_win = TournamentManager.play(
                 bot, conf["num-games-per-tournament"])
-        except IllegalBotMoveException:
-            UsersData.update_bot_illegal_move(user_id)
-        except (subprocess.CalledProcessError, OSError):
-            traceback.print_exc()
-            UsersData.update_bot_error(user_id)
+        except BotException as e:
+            UsersData.update_bot_rejected(user_id, e)
         else:
             UsersData.update_bot_success(user_id, av_num_moves_to_win)
 

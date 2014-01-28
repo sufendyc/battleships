@@ -1,4 +1,5 @@
 import datetime
+import httplib
 import logging.config
 import motor
 import os.path
@@ -9,6 +10,7 @@ import tornado.auth
 import tornado.gen
 import tornado.ioloop
 import tornado.web
+import worker
 import yaml
 from bson.objectid import ObjectId
 from data import UsersDataAsync as UsersData
@@ -24,6 +26,8 @@ class BaseHandler(tornado.web.RequestHandler):
             return None
         return tornado.escape.json_decode(user_json)
 
+
+# WWW --------------------------------------------------------------------------
 
 class AuthLoginHandler(BaseHandler, tornado.auth.FacebookGraphMixin):
     # authentication logic based on:
@@ -152,7 +156,51 @@ class PlayHandler(BaseHandler):
         self.render("play.html", bots=bots, botlen=len(bots))
 
 
-class BotsHandler(BaseHandler):
+# API --------------------------------------------------------------------------
+
+class APIBaseHandler(BaseHandler):
+
+    def write_error(self, status_code, **kwargs):
+        """Overridden to return errors and exceptions in a consistent JSON 
+        format.
+
+        Adopted schema used by Instagram:
+        http://instagram.com/developer/endpoints/
+        """
+
+        exception = kwargs['exc_info'][1]
+
+        # hide details of internal server errors from the client
+        if not isinstance(exception, tornado.web.HTTPError):
+            exception = tornado.web.HTTPError(httplib.INTERNAL_SERVER_ERROR)
+            exception.message = 'Oops, an error occurred.'
+
+        code = getattr(exception, "custom_error_code", status_code)
+        self.finish({
+            "meta": {
+                "error_type":       exception.__class__.__name__,
+                "code":             code,
+                "error_message":    exception.message,
+                }})
+
+    def complete(self, status_code=httplib.OK, data=None):
+        """Return data in a consistent JSON format.
+
+        Adopted schema used by Instagram:
+        http://instagram.com/developer/endpoints/
+        """
+        result = {
+            "meta": {
+                "code": status_code,
+                }}
+        if data is not None:
+            result["data"] = data
+        self.set_status(status_code)
+        self.write(result)
+        self.finish()
+
+
+class BotsHandler(APIBaseHandler):
 
     @tornado.web.authenticated
     @tornado.web.asynchronous
@@ -170,25 +218,60 @@ class BotsHandler(BaseHandler):
             bot["bot_id"] = str(bot["bot_id"])
         map(fmt, bots)
 
-        self.write({"bots": bots})
+        self.complete(data={"bots": bots})
     
 
 # TODO playing even a single game could take a non-trivial amount of time so
 # this should really be done asynchronously with the client perhaps being given
 # a game token that they can use to check on game progress and ultimately use
 # to retrieve the game summary.
-class GameHandler(BaseHandler):
+class GameHandler(APIBaseHandler):
 
     @tornado.web.authenticated
     def get(self, bot_id):
         """Return the summary of a game whose ship arrangement is seeded by
         `seed` and playing with bot `bot_id`.
         """
-        # TODO how are errors handled?
-        bot_path = "%s/%s" % (self.settings["bot_path"], bot_id)
-        summary = GameManager.play(bot_path)
-        self.write(summary)
+        try:
+            bot_path = "%s/%s" % (self.settings["bot_path"], bot_id)
+            summary = GameManager.play(bot_path)
+            self.complete(data=summary)
 
+        except worker.BotMoveIllegalException as e:
+            raise HTTPBotMoveIllegalException(e)
+        except worker.BotMoveTimeoutException as e:
+            raise HTTPBotMoveTimeoutException(e)
+        except worker.BotErrorException as e:
+            raise HTTPBotErrorException(e)
+
+
+class HTTPBotException(tornado.web.HTTPError):
+    def __init__(self, e):
+        super(HTTPBotException, self).__init__(
+            status_code=httplib.INTERNAL_SERVER_ERROR)
+        del e.data["type"]
+        self.message = e.data
+
+
+class HTTPBotMoveIllegalException(HTTPBotException):
+    def __init__(self, e):
+        super(HTTPBotMoveIllegalException, self).__init__(e)
+        self.custom_error_code = 100
+
+
+class HTTPBotMoveTimeoutException(HTTPBotException):
+    def __init__(self, e):
+        super(HTTPBotMoveTimeoutException, self).__init__(e)
+        self.custom_error_code = 101
+
+
+class HTTPBotErrorException(HTTPBotException):
+    def __init__(self, e):
+        super(HTTPBotErrorException, self).__init__(e)
+        self.custom_error_code = 102
+
+
+# Main -------------------------------------------------------------------------
 
 def main():
 
@@ -199,7 +282,8 @@ def main():
     logging.config.dictConfig(logging_conf)
 
     # load config
-    with open(os.path.join(os.path.dirname(__file__), "config.yaml")) as f:
+    conf_path = os.path.join(os.path.dirname(__file__), "conf", "system.yaml")
+    with open(conf_path) as f:
         conf = yaml.load(f)
 
     # this must happend before we start accepting tornado requests
