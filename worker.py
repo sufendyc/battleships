@@ -33,6 +33,7 @@ class ShotGridSquareState(object):
     UNKNOWN =   0
     MISS =      -1
     HIT =       1
+    SUNK =      2
 
 
 class Grid(object):
@@ -71,6 +72,17 @@ class Grid(object):
         y = i / cls.SIZE
         x = i % cls.SIZE
         return x, y
+
+
+class ShipGrid(Grid):
+
+    def get_ship_squares(self, ship_type):
+        """Generate a list of index positions for the squares that contain the
+        ship `ship_type`.
+        """
+        for i, val in enumerate(self.squares):
+            if val == ship_type:
+                yield i
 
 
 # Ship Manager -----------------------------------------------------------------
@@ -174,7 +186,7 @@ class GameManager(object):
         cls._log.info("%s bot started game" % bot_id)
 
         # init game state
-        ship_grid = Grid(ShipGridSquareState.SEA)
+        ship_grid = ShipGrid(ShipGridSquareState.SEA)
         shot_grid = Grid(ShotGridSquareState.UNKNOWN)
         ShipManager.arrange_on_grid(ship_grid)
 
@@ -201,7 +213,7 @@ class GameManager(object):
         grid `hits_to_win`.
         """
         hits_made = len(filter(
-            lambda x: x == ShotGridSquareState.HIT, shot_grid.squares))
+            lambda x: x == ShotGridSquareState.SUNK, shot_grid.squares))
         # index 1 of `SHIPS` is the ship size
         hits_to_win = sum(map(itemgetter(1), ShipManager.SHIPS))
         return hits_made == hits_to_win
@@ -254,12 +266,32 @@ class GameManager(object):
                 })
 
         # make bot move
-        hit = ship_grid.get(x, y) != ShipGridSquareState.SEA
-        val = ShotGridSquareState.HIT if hit else ShotGridSquareState.MISS
-        shot_grid.put(x, y, val)
+        square_revealed = ship_grid.get(x, y)
 
+        # miss
+        if square_revealed == ShipGridSquareState.SEA:
+            move_result = ShotGridSquareState.MISS
+            shot_grid.put(x, y, ShotGridSquareState.MISS)
+
+        # hit (maybe sunk)
+        else:
+            move_result = ShotGridSquareState.HIT
+            shot_grid.put(x, y, ShotGridSquareState.HIT)
+
+            ship_type = square_revealed
+            is_sunk = True
+            for i in ship_grid.get_ship_squares(ship_type):
+                if shot_grid.squares[i] == ShotGridSquareState.UNKNOWN:
+                    is_sunk = False
+                    break
+                    
+            if is_sunk:
+                move_result = ShotGridSquareState.SUNK
+                for i in ship_grid.get_ship_squares(ship_type):
+                    shot_grid.squares[i] = ShotGridSquareState.SUNK
+                 
         # return move summary
-        return (bot_move, val)
+        return (bot_move, move_result)
 
 
 class BotException(Exception):
