@@ -14,14 +14,19 @@ import time
 import traceback
 import yaml
 from data import UsersDataSync as UsersData
+from operator import itemgetter
 from queue import BotQueue
 
 
 # Grids ------------------------------------------------------------------------
 
 class ShipGridSquareState(object):
-    SEA =       0
-    SHIP =      1
+    SEA =                   0
+    AIRCRAFT_CARRIER =      1
+    BATTLESHIP =            2
+    SUBMARINE =             3
+    DESTROYER =             4
+    PATROL_BOAT =           5
 
 
 class ShotGridSquareState(object):
@@ -72,12 +77,13 @@ class Grid(object):
 
 class ShipManager(object):
 
+    # (ship_type, ship_size)
     SHIPS = [
-        5,  # aircraft carrier
-        4,  # battleship
-        3,  # submarine
-        3,  # destroyer (or cruiser)
-        2,  # patrol board (or destroyer)
+        (ShipGridSquareState.AIRCRAFT_CARRIER,  5),
+        (ShipGridSquareState.BATTLESHIP,        4),
+        (ShipGridSquareState.SUBMARINE,         3),
+        (ShipGridSquareState.DESTROYER,         3),
+        (ShipGridSquareState.PATROL_BOAT,       2),
         ]
 
     @classmethod
@@ -97,24 +103,26 @@ class ShipManager(object):
 
         ships = list(cls.SHIPS)
         random.shuffle(ships)
-        for ship in ships:
+        for ship_type, ship_size in ships:
             while True:
                 r_x, r_y = ship_grid.rand_square()
                 if random.choice([True, False]):
                     # vertical
-                    seq = [(x, r_y) for x in range(r_x, r_x + ship)]
+                    seq = [(x, r_y) for x in range(r_x, r_x + ship_size)]
                 else:
                     # horizontal
-                    seq = [(r_x, y) for y in range(r_y, r_y + ship)]
+                    seq = [(r_x, y) for y in range(r_y, r_y + ship_size)]
                 success = \
-                    cls._attempt_to_place_ship_in_seq(ship_grid, ship, seq)
+                    cls._attempt_to_place_ship_in_seq(
+                        ship_grid, ship_type, ship_size, seq)
                 if success:
                     break
 
     @staticmethod
-    def _attempt_to_place_ship_in_seq(ship_grid, ship, seq):
-        """Attempt to place the ship of length `ship` in the grid `ship_grid`
-        in the squares identified by the list of coordinates `seq`.
+    def _attempt_to_place_ship_in_seq(ship_grid, ship_type, ship_size, seq):
+        """Attempt to place the ship of type `ship_type` with length 
+        `ship_size` in the grid `ship_grid` in the squares identified by the 
+        list of coordinates `seq`.
 
         The attempt will fail if:
             * Any coordinates are invalid for the grid
@@ -129,7 +137,7 @@ class ShipManager(object):
                 return False
 
         for x, y in seq:
-            ship_grid.put(x, y, ShipGridSquareState.SHIP)
+            ship_grid.put(x, y, ship_type)
         return True
 
 
@@ -189,11 +197,14 @@ class GameManager(object):
         """Return whether all ships have been hit/sunk.
 
         This is calculated by comparing the number of hits in the shot grid 
-        with the number of squares occupied by ships in the ship grid.
+        `hits_made` with the number of squares occupied by ships in the ship 
+        grid `hits_to_win`.
         """
-        hits = filter(
-            lambda x: x == ShotGridSquareState.HIT, shot_grid.squares)
-        return len(hits) == sum(ShipManager.SHIPS)
+        hits_made = len(filter(
+            lambda x: x == ShotGridSquareState.HIT, shot_grid.squares))
+        # index 1 of `SHIPS` is the ship size
+        hits_to_win = sum(map(itemgetter(1), ShipManager.SHIPS))
+        return hits_made == hits_to_win
 
     @classmethod
     def _play_next_bot_move(cls, bot_path, ship_grid, shot_grid):
@@ -243,7 +254,7 @@ class GameManager(object):
                 })
 
         # make bot move
-        hit = ship_grid.get(x, y) == ShipGridSquareState.SHIP
+        hit = ship_grid.get(x, y) != ShipGridSquareState.SEA
         val = ShotGridSquareState.HIT if hit else ShotGridSquareState.MISS
         shot_grid.put(x, y, val)
 
