@@ -232,9 +232,12 @@ class GameHandler(APIBaseHandler):
         """Return the summary of a game whose ship arrangement is seeded by
         `seed` and playing with bot `bot_id`.
         """
+
+        seed = self.get_argument("seed", None)
+
         try:
             bot_path = "%s/%s" % (self.settings["bot_path"], bot_id)
-            summary = GameManager.play(bot_path)
+            summary = GameManager.play(bot_path, seed)
             self.complete(data=summary)
 
         except worker.BotMoveIllegalException as e:

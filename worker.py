@@ -160,12 +160,12 @@ class GameManager(object):
     _log = logging.getLogger("worker")
     _BOT_MOVE_TIMEOUT = 10 # max secs a bot can take to make a move
 
-    # TODO allow a seed to be passed
     @classmethod
-    def play(cls, bot_path):
+    def play(cls, bot_path, seed=None):
         """Generate a random ship arragement and play the game until the bot
         has hit/sunk all ships. The number of moves taken by the bot is
-        returned.
+        returned. To make the game deterministic a seed can be provided for
+        the random number generator.
 
         A BotIllegalMoveException is raised if the bot attempts to play an
         illegal move.
@@ -182,6 +182,7 @@ class GameManager(object):
 
         """
 
+        random.seed(seed)
         bot_id = os.path.split(bot_path)[1]
         cls._log.info("%s bot started game" % bot_id)
 
