@@ -95,7 +95,9 @@ class ShipManager(object):
         Finish when all ships have been successfully placed.
         """
 
-        for ship in cls.SHIPS:
+        ships = list(cls.SHIPS)
+        random.shuffle(ships)
+        for ship in ships:
             while True:
                 r_x, r_y = ship_grid.rand_square()
                 if random.choice([True, False]):
