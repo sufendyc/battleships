@@ -18,12 +18,12 @@
         <div class="game-start btn btn-default">Start New</div>
          <div class="btn-group change-bot">
           <div type="button" data-val="{{ bots[0]['bot_id'] }}"  class="btn btn-default dropdown-toggle" data-toggle="dropdown">
-            Generation {{ len(bots) }} - {{ bots[0]['friendly_time'] }}
+            Generation {{ len(bots) }} - {{ bots[0]['time_human'] }}
             <span class="caret"></span>
           </div>
           <ul class="dropdown-menu">
             {% for i, bot in enumerate(bots) %}
-              <li><a data-val="{{ bot['bot_id']}}" href="#">Generation {{ botlen - i }} - {{ bot['friendly_time']}}</a></li>
+              <li><a data-val="{{ bot['bot_id']}}" href="#">Generation {{ botlen - i }} - {{ bot['time_human']}}</a></li>
             {% end %}
 
           </ul>

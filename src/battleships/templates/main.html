@@ -62,10 +62,16 @@
                 {% for i, user in enumerate(ranked_users) %}
                     <tr>
                         <td>{{ i+1 }}</td>
-                        <td><img class="avatar" src="{{ user["facebook"]["picture"]["data"]["url"] }}">{{ user["facebook"]["name"] }}</td>
-                        <td>{{ user["av_num_moves_to_win"] or "-" }}</td>
-                        <td><span class="label label-{{ user["state_category"] }}">{{ user["state"] }}</span></td>
-                        <td><span data-timestamp="{{ user["last_played"] or '' }}"></span></td>
+                        <td><img class="avatar" src="{{ user["facebook_data"]["picture"]["data"]["url"] }}">{{ user["facebook_data"]["name"] }}</td>
+                        <td>{{ user["score_best"]["value"] or "-" }}</td>
+                        <td><span class="label label-{{ {
+                            "new":      "info",
+                            "pending":  "warning",
+                            "success":  "success",
+                            "error":    "danger",
+                            "best":     "primary",
+                            }[user["state"]] }}">{{ user["state"] }}</span></td>
+                        <td><span data-timestamp="{{ user["score_history"][-1]["time"] if "score_history" in user else '' }}"></span></td>
                     </tr>
                 {% end %}
                 </tbody>

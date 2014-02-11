@@ -13,9 +13,9 @@ import subprocess
 import time
 import traceback
 import yaml
-from data import UsersDataSync as UsersData
+from battleships.conf import Conf
+from battleships.data import UsersDataSync as UsersData
 from operator import itemgetter
-from queue import BotQueue
 
 
 # Grids ------------------------------------------------------------------------
@@ -157,11 +157,10 @@ class ShipManager(object):
 
 class GameManager(object):
 
-    _log = logging.getLogger("worker")
     _BOT_MOVE_TIMEOUT = 10 # max secs a bot can take to make a move
 
     @classmethod
-    def play(cls, bot_path, seed=None):
+    def play(cls, bot_id, seed=None):
         """Generate a random ship arragement and play the game until the bot
         has hit/sunk all ships. The number of moves taken by the bot is
         returned. To make the game deterministic a seed can be provided for
@@ -183,8 +182,6 @@ class GameManager(object):
         """
 
         random.seed(seed)
-        bot_id = os.path.split(bot_path)[1]
-        cls._log.info("%s bot started game" % bot_id)
 
         # init game state
         ship_grid = ShipGrid(ShipGridSquareState.SEA)
@@ -192,18 +189,34 @@ class GameManager(object):
         ShipManager.arrange_on_grid(ship_grid)
 
         # repeatedly ask the bot to play moves until all ships are hit/sunk
-        moves = []
-        while not cls._all_ships_hit(shot_grid):
-            move = cls._play_next_bot_move(bot_path, ship_grid, shot_grid)
-            moves.append(move)
+        try:
+            moves = []
+            while not cls._all_ships_hit(shot_grid):
+                move = cls._play_next_bot_move(bot_id, ship_grid, shot_grid)
+                moves.append(move)
+            return {
+                "success":  True,
+                "moves":    moves,
+                "ships":    ship_grid.squares,
+                }
 
-        # return a summary of the game
-        cls._log.info(
-            "%s bot completed game in %s moves" % (bot_id, len(moves)))
-        return {
-            "moves": moves,
-            "ships": ship_grid.squares,
-            }
+        except _BotMoveIllegalException:
+            return {
+                "success":  False,
+                "error":    "Bot made an illegal move",
+                }
+
+        except _BotMoveTimeoutException:
+            return {
+                "success":  False,
+                "error":    "Bot timeout",
+                }
+
+        except _BotErrorException:
+            return {
+                "success":  False,
+                "error":    "Bot syntax error",
+                }
 
     @staticmethod
     def _all_ships_hit(shot_grid):
@@ -220,15 +233,17 @@ class GameManager(object):
         return hits_made == hits_to_win
 
     @classmethod
-    def _play_next_bot_move(cls, bot_path, ship_grid, shot_grid):
+    def _play_next_bot_move(cls, bot_id, ship_grid, shot_grid):
         """Run the bot script against the current `shot_grid` to obtain the
         next move, then attempt to update the `shot_grid` by playing the move.
         """
 
+        bot_path = os.path.join(Conf["bot-path"], str(bot_id))
+
         # Get next bot move from bot script. 
-        # Raise `BotMoveTimeoutException` if the bot takes too long to move:
+        # Raise `_BotMoveTimeoutException` if the bot takes too long to move:
         # http://stackoverflow.com/questions/1191374/subprocess-with-timeout
-        # Raise `BotErrorException` if the bot raises an error during 
+        # Raise `_BotErrorException` if the bot raises an error during 
         # execution.
         def alarm_handler(signum, frame):
             raise BotMoveTimeoutException({
@@ -240,7 +255,7 @@ class GameManager(object):
             bot_move = subprocess.check_output([bot_path, str(shot_grid)])
         except (subprocess.CalledProcessError, OSError):
             traceback.print_exc() # debug
-            raise BotErrorException({
+            raise _BotErrorException({
                 "game_state":   str(shot_grid),
                 })
         finally:
@@ -250,18 +265,18 @@ class GameManager(object):
         try:
             bot_move = int(bot_move)
         except ValueError:
-            raise BotMoveIllegalException({
+            raise _BotMoveIllegalException({
                 "game_state":   str(shot_grid),
                 "move":         str(bot_move),
                 })
         if bot_move < 0 or bot_move >= len(shot_grid.squares):
-            raise BotMoveIllegalException({
+            raise _BotMoveIllegalException({
                 "game_state":   str(shot_grid),
                 "move":         bot_move,
                 })
         x, y = Grid.index_to_coord(bot_move)
         if shot_grid.get(x, y) != ShotGridSquareState.UNKNOWN:
-            raise BotMoveIllegalException({
+            raise _BotMoveIllegalException({
                 "game_state":   str(shot_grid),
                 "move":         bot_move,
                 })
@@ -295,7 +310,7 @@ class GameManager(object):
         return (bot_move, move_result)
 
 
-class BotException(Exception):
+class _BotException(Exception):
     """Abstract superclass for all bot exception."""
 
     def __init__(self, data):
@@ -303,16 +318,19 @@ class BotException(Exception):
         self.data = data
 
 
-class BotMoveIllegalException(BotException): 
+class _BotMoveIllegalException(_BotException): 
     """The bot made an illegal move."""
+    pass
 
 
-class BotMoveTimeoutException(BotException): 
+class _BotMoveTimeoutException(_BotException): 
     """The bot took too long to make a move."""
+    pass
 
 
-class BotErrorException(BotException):
+class _BotErrorException(_BotException):
     """The bot encountered an error during execution."""
+    pass
 
 
 # Tournament Manager -----------------------------------------------------------
@@ -322,55 +340,31 @@ class TournamentManager(object):
     `num_games` games.
     """
 
-    _log = logging.getLogger("worker")
+    _log = logging.getLogger("tournament")
 
     @classmethod
-    def play(cls, bot_path, num_games):
+    def play(cls, user_id, bot_id):
 
-        bot_id = os.path.split(bot_path)[1]
-        cls._log.info("%s bot started tournament" % bot_id)
-
-        scores = []
-        for i in range(num_games):
-            summary = GameManager.play(bot_path)
-            num_moves = len(summary["moves"])
-            scores.append(num_moves)
-            cls._log.info(
-                "%s bot completed game %s/%s of tournament" % \
-                    (bot_id, i+1, num_games))
-        average = sum(scores) / float(num_games)
-        return average
-
-
-# Main -------------------------------------------------------------------------
-
-def main():
-
-    # init logging
-    logging_conf_path = os.path.join(
-        os.path.dirname(__file__), "conf", "logging.yaml")
-    logging_conf = yaml.load(open(logging_conf_path))
-    logging.config.dictConfig(logging_conf)
-
-    # load config
-    conf_path = os.path.join(os.path.dirname(__file__), "conf", "system.yaml")
-    with open(conf_path) as f:
-        conf = yaml.load(f)
-
-    # indefinitely process bot queue
-    while True:
-        user_id, bot_id = BotQueue.pop_or_wait()
-        bot = os.path.join(conf["bot-path"], bot_id)
+        num_games = Conf["num-games-per-tournament"]
 
         try:
-            av_num_moves_to_win = TournamentManager.play(
-                bot, conf["num-games-per-tournament"])
-        except BotException as e:
-            UsersData.update_bot_rejected(user_id, e)
-        else:
-            UsersData.update_bot_success(user_id, av_num_moves_to_win)
+            move_counts = []
+            for i in range(num_games):
+                result = GameManager.play(bot_id)
+                if not result["success"]:
+                    raise _ScoringException(result["error"])
+                move_counts.append(len(result["moves"]))
+                cls._log.info("%s played %s/%s" % (bot_id, i+1, num_games))
+            
+            score = sum(move_counts) / float(num_games) # average
+            UsersData.update_after_scoring_success(user_id, bot_id, score)
+
+        except _ScoringException as e:
+            cls._log.warning("%s scoring aborted: %s" % (bot_id, e))
+            UsersData.update_after_scoring_error(user_id, bot_id, e)
 
 
-if __name__ == "__main__":
-    main()
+class _ScoringException(Exception):
+    """During scoring the bot raised an error."""
+    pass
 

@@ -1,0 +1,11 @@
+
+bot-path:                   /var/lib/battleships/bots
+fb-app-id:                  1400473453527662
+fb-app-secret:              50d9211e4c0d879bd48c1f09d04c9b4a
+cookie-secret:              P3t+8z1gSpmt+E51JZ3GQAzPwDnDGk7TnHvhvjg5d8s=
+num-games-per-tournament:   100
+
+redis:
+  host:                     localhost
+  port:                     6379
+

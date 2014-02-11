@@ -10,12 +10,12 @@ import tornado.auth
 import tornado.gen
 import tornado.ioloop
 import tornado.web
-import worker
 import yaml
+from battleships.cache import CacheBotGame
+from battleships.conf import Conf
+from battleships.data import UsersDataAsync as UsersData
+from battleships.queues import QueueBotGame, QueueBotScoring
 from bson.objectid import ObjectId
-from data import UsersDataAsync as UsersData
-from queue import BotQueue
-from worker import GameManager
 
 
 class BaseHandler(tornado.web.RequestHandler):
@@ -97,7 +97,7 @@ class MainHandler(BaseHandler):
         # save the bot file to disk and make it executable
         bot_id = ObjectId() 
         bot_file_content = self.request.files["bot_file"][0]["body"]
-        bot_path = "%s/%s" % (self.settings["bot_path"], bot_id)
+        bot_path = "%s/%s" % (Conf["bot-path"], str(bot_id))
         f = open(bot_path, "w")
         f.write(bot_file_content)
         f.close()
@@ -115,10 +115,10 @@ class MainHandler(BaseHandler):
         # update the user's data with the bot submission
         user_id = self.get_current_user()["id"]
         yield UsersData(self.settings["db"]).\
-            update_bot_pending(user_id, bot_id)    
+            update_after_bot_submit(user_id, bot_id)    
 
-        # put the bot in the queue for processing
-        BotQueue.add(user_id, bot_id)
+        # put the bot in the queue for scoring
+        QueueBotScoring.add(user_id, bot_id)
 
         # display the bot received alert informing the user what happens next
         self.redirect("/#bot-received")
@@ -145,14 +145,13 @@ class PlayHandler(BaseHandler):
         user = yield UsersData(self.settings["db"]).read(user_id)
 
         # convert ObjectIds to strings for JSON serialisation
-        bots = user["bots"]
+        bots = user.get("bot_history", [])
 
         def fmt(bot):
             bot["bot_id"] = str(bot["bot_id"])
-            bot["friendly_time"]   = datetime.datetime.fromtimestamp(bot['created_time'])\
-                .strftime('%H:%M:%S %Y-%m-%d')
+            bot["time_human"] = datetime.datetime.fromtimestamp(bot['time']).strftime('%H:%M:%S %Y-%m-%d')
         map(fmt, bots)
-        bots = sorted(bots, key=lambda b: -b['created_time'])
+        bots = sorted(bots, key=lambda b: -b['time'])
         self.render("play.html", bots=bots, botlen=len(bots))
 
 
@@ -221,91 +220,82 @@ class BotsHandler(APIBaseHandler):
         self.complete(data={"bots": bots})
     
 
-# TODO playing even a single game could take a non-trivial amount of time so
-# this should really be done asynchronously with the client perhaps being given
-# a game token that they can use to check on game progress and ultimately use
-# to retrieve the game summary.
-class GameHandler(APIBaseHandler):
+class BotGameRequestHandler(APIBaseHandler):
 
-    @tornado.web.authenticated
-    def get(self, bot_id):
-        """Return the summary of a game whose ship arrangement is seeded by
-        `seed` and playing with bot `bot_id`.
+    # TODO enable
+    #@tornado.web.authenticated
+    def post(self):
+        """Queue a bot to be played.
+
+        Playing even a single game could take a non-trivial amount of time so
+        the bot is added to a queue for processing. A token is returned which
+        can be used by the client to check whether the game results are 
+        available (see BotGameResultHandler).
+
+        The game results include whether the game was successfully completed
+        or whether an error was raised. If successful, then the results
+        include information about the ship layout and individual moves made by
+        the bot.
+
+        For deterministic games a seed can be provided by the client.
+
         """
-
-        seed = self.get_argument("seed", None)
-
-        try:
-            bot_path = "%s/%s" % (self.settings["bot_path"], bot_id)
-            summary = GameManager.play(bot_path, seed)
-            self.complete(data=summary)
-
-        except worker.BotMoveIllegalException as e:
-            raise HTTPBotMoveIllegalException(e)
-        except worker.BotMoveTimeoutException as e:
-            raise HTTPBotMoveTimeoutException(e)
-        except worker.BotErrorException as e:
-            raise HTTPBotErrorException(e)
+        bot_id = self.get_argument("bot_id")
+        seed =   self.get_argument("seed", None)
+        token = QueueBotGame.add(bot_id, seed)
+        self.complete(data={"token": token})
 
 
-class HTTPBotException(tornado.web.HTTPError):
-    def __init__(self, e):
-        super(HTTPBotException, self).__init__(
-            status_code=httplib.INTERNAL_SERVER_ERROR)
-        del e.data["type"]
-        self.message = e.data
+class BotGameResultHandler(APIBaseHandler):
 
-
-class HTTPBotMoveIllegalException(HTTPBotException):
-    def __init__(self, e):
-        super(HTTPBotMoveIllegalException, self).__init__(e)
-        self.custom_error_code = 100
-
-
-class HTTPBotMoveTimeoutException(HTTPBotException):
-    def __init__(self, e):
-        super(HTTPBotMoveTimeoutException, self).__init__(e)
-        self.custom_error_code = 101
-
-
-class HTTPBotErrorException(HTTPBotException):
-    def __init__(self, e):
-        super(HTTPBotErrorException, self).__init__(e)
-        self.custom_error_code = 102
+    # TODO enable
+    #@tornado.web.authenticated
+    def get(self, token):
+        """Return the results of a bot game (see BotGameRequestHandler)."""
+        result = CacheBotGame.get(token)
+        self.complete(data=result)
 
 
 # Main -------------------------------------------------------------------------
 
 def main():
 
+    # TODO move to logging module
     # init logging
-    logging_conf_path = os.path.join(
-        os.path.dirname(__file__), "conf", "logging.yaml")
-    logging_conf = yaml.load(open(logging_conf_path))
+    logging_conf = yaml.load(open("/etc/battleships/logging.yaml"))
     logging.config.dictConfig(logging_conf)
 
     # load config
-    conf_path = os.path.join(os.path.dirname(__file__), "conf", "system.yaml")
-    with open(conf_path) as f:
-        conf = yaml.load(f)
+    Conf.init()
 
     # this must happend before we start accepting tornado requests
     db = motor.MotorClient().open_sync().battleships
 
+    # start processing background queues, each in a separate process
+    QueueBotGame.start()
+    # TODO how does the process access the db? just regular sync mongo!
+    QueueBotScoring.start()
+
     application = tornado.web.Application([
-        (r"/",                          MainHandler),
-        (r"/how-to/?",                  HowToHandler),
-        (r"/play/?",                    PlayHandler),
-        (r"/bots/?",                    BotsHandler),
-        (r"/game/([0-9a-f]{24})/?",     GameHandler),
-        (r"/auth/login/?",              AuthLoginHandler),
+
+        # WWW
+        (r"/",                          MainHandler),               # GET/POST
+        (r"/how-to/?",                  HowToHandler),              # GET
+        (r"/play/?",                    PlayHandler),               # GET
+
+        # API
+        (r"/bots/?",                    BotsHandler),               # GET
+        (r"/games/?",                   BotGameRequestHandler),     # POST
+        (r"/games/([0-9a-f]{24})/?",    BotGameResultHandler),      # GET
+        (r"/auth/login/?",              AuthLoginHandler),          # GET
         ],
+
         db=             db,
-        cookie_secret=  conf["cookie-secret"],
-        fb_app_id=      conf["fb-app-id"],
-        fb_app_secret=  conf["fb-app-secret"],
-        bot_path=       conf["bot-path"],
-        xsrf_cookies=   True,
+        cookie_secret=  Conf["cookie-secret"],
+        fb_app_id=      Conf["fb-app-id"],
+        fb_app_secret=  Conf["fb-app-secret"],
+        # TODO enable
+        #xsrf_cookies=   True,
         login_url=      "/auth/login",
         template_path=  os.path.join(os.path.dirname(__file__), "templates"),
         static_path=    os.path.join(os.path.dirname(__file__), "static"),
