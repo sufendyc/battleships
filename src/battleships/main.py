@@ -82,7 +82,10 @@ class MainHandler(BaseHandler):
     def get(self):
         """Render the homepage, including the leaderboard."""
         ranked_users = yield UsersData(self.settings["db"]).read_ranked_users() 
-        self.render("main.html", ranked_users=ranked_users) 
+        current_user = self.get_current_user()
+        self.render("main.html", 
+            ranked_users=ranked_users, 
+            current_user=current_user) 
 
     @tornado.web.authenticated
     @tornado.web.asynchronous
@@ -92,7 +95,7 @@ class MainHandler(BaseHandler):
 
         # check a bot was uploaded
         if "bot_file" not in self.request.files:
-            self.redirect("/#bot-missing")
+            self.render("msg.html", msg="Oops you didn't attach a bot file.")
 
         # save the bot file to disk and make it executable
         bot_id = ObjectId() 
@@ -121,7 +124,7 @@ class MainHandler(BaseHandler):
         QueueBotScoring.add(user_id, bot_id)
 
         # display the bot received alert informing the user what happens next
-        self.redirect("/#bot-received")
+        self.render("msg.html", msg="We've got your bot and will be scoring it shortly. Check back from time to time to see how it's going.")
 
 
 class HowToHandler(BaseHandler):

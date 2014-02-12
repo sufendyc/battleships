@@ -1,0 +1,63 @@
+
+body {
+    margin-bottom: 3em;
+}
+
+body,
+.pure-g [class *= "pure-u"] {
+    font-family: proxima-nova, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 26px;
+    font-weight: 200
+}
+
+h1 {
+    font-family: museo-slab,Georgia,"Times New Roman",Times,serif;
+    font-weight: 500;
+    font-size: 90px;
+    margin: .5em 0 .3em 0;
+}
+
+h2 {
+    font-family: proxima-nova, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 26px;
+    font-weight: 200
+}
+
+.pure-form {
+    margin-top: 1em;
+}
+
+.pure-form legend {
+    font-size: 70%;
+}
+
+p,
+pre,
+.pure-button,
+input {
+    font-size: 70%;
+}
+
+table {
+    margin-top: 2em;
+    width: 100%;
+    font-size: 70%;
+}
+
+table.samples {
+    margin-bottom: 2em;
+}
+
+table.samples tr td {
+    padding: 1em 0 1em 3em;
+    vertical-align: top;
+}
+
+img.avatar {
+    border-radius: 25px;
+}
+
+h2.msg {
+    margin-bottom: 2em;
+}
+
