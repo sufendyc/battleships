@@ -21,6 +21,14 @@ $(document).ready(function() {
     $("#home").click(function() {
         window.location.href = "/";
     });
+    $("table tr[data-player-id]").click(function() {
+        var playerId = $(this).attr("data-player-id");
+        window.location.href = "/players/" + playerId;
+    });
+    $("table tr[data-bot-id]").click(function() {
+        var botId = $(this).attr("data-bot-id");
+        window.location.href = "/games?bot_id=" + botId;
+    });
 
 });
 

@@ -41,6 +41,16 @@ input {
 table {
     margin-top: 2em;
     width: 100%;
+}
+
+table tr[data-bot-id],
+table tr[data-player-id] {
+    cursor: pointer;
+}
+
+table.bots,
+table.samples,
+table.leaderboard {
     font-size: 70%;
 }
 

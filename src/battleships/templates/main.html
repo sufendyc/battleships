@@ -28,7 +28,7 @@
                 {% raw xsrf_form_html() %}
             </form>
 
-            <table class="pure-table pure-table-horizontal">
+            <table class="leaderboard pure-table pure-table-horizontal">
                 <thead>
                     <tr>
                         <th>#</th>
@@ -42,7 +42,7 @@
 
                 <tbody>
                 {% for i, user in enumerate(ranked_users) %}
-                    <tr>
+                    <tr data-player-id="{{ user["_id"] }}">
                         <td>{{ i+1 }}</td>
                         <td><img class="avatar" src="{{ user["facebook_data"]["picture"]["data"]["url"] }}"></td>
                         <td>{{ user["facebook_data"]["name"] }}</td>

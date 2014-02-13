@@ -135,7 +135,7 @@ class HowToHandler(BaseHandler):
         self.render("how-to.html")
 
 
-class PlayHandler(BaseHandler):
+class GamesHandler(BaseHandler):
 
     @tornado.web.authenticated
     @tornado.web.asynchronous
@@ -155,7 +155,7 @@ class PlayHandler(BaseHandler):
             bot["time_human"] = datetime.datetime.fromtimestamp(bot['time']).strftime('%H:%M:%S %Y-%m-%d')
         map(fmt, bots)
         bots = sorted(bots, key=lambda b: -b['time'])
-        self.render("play.html", bots=bots, botlen=len(bots))
+        self.render("games.html", bots=bots, botlen=len(bots))
 
 
 # API --------------------------------------------------------------------------
@@ -202,26 +202,15 @@ class APIBaseHandler(BaseHandler):
         self.finish()
 
 
-class BotsHandler(APIBaseHandler):
+class PlayersHandler(APIBaseHandler):
 
     @tornado.web.authenticated
     @tornado.web.asynchronous
     @tornado.gen.coroutine
-    def get(self):
-        """Return details of all the bots submitted by the current user."""
-
-        # get bot data from the database
-        user_id = self.get_current_user()["id"]
+    def get(self, user_id):
         user = yield UsersData(self.settings["db"]).read(user_id)
+        self.render("players.html", user=user) 
 
-        # convert ObjectIds to strings for JSON serialisation
-        bots = user["bots"]
-        def fmt(bot):
-            bot["bot_id"] = str(bot["bot_id"])
-        map(fmt, bots)
-
-        self.complete(data={"bots": bots})
-    
 
 class BotGameRequestHandler(APIBaseHandler):
 
@@ -276,21 +265,20 @@ def main():
 
     # start processing background queues, each in a separate process
     QueueBotGame.start()
-    # TODO how does the process access the db? just regular sync mongo!
     QueueBotScoring.start()
 
     application = tornado.web.Application([
 
         # WWW
-        (r"/",                          MainHandler),               # GET/POST
-        (r"/how-to/?",                  HowToHandler),              # GET
-        (r"/play/?",                    PlayHandler),               # GET
+        (r"/",                                  MainHandler),               # GET/POST
+        (r"/how-to/?",                          HowToHandler),              # GET
+        (r"/games/?",                           GamesHandler),              # GET
 
         # API
-        (r"/bots/?",                    BotsHandler),               # GET
-        (r"/games/?",                   BotGameRequestHandler),     # POST
-        (r"/games/([0-9a-f]{24})/?",    BotGameResultHandler),      # GET
-        (r"/auth/login/?",              AuthLoginHandler),          # GET
+        (r"/players/([0-9]{1,99})/?",           PlayersHandler),            # GET
+        (r"/games/data?",                       BotGameRequestHandler),     # POST
+        (r"/games/data/([0-9a-f]{24})/?",       BotGameResultHandler),      # GET
+        (r"/auth/login/?",                      AuthLoginHandler),          # GET
         ],
 
         db=             db,
