@@ -39,7 +39,6 @@ input {
 }
 
 table {
-    margin-top: 2em;
     width: 100%;
 }
 
@@ -48,14 +47,20 @@ table tr[data-player-id] {
     cursor: pointer;
 }
 
-table.bots,
-table.samples,
-table.leaderboard {
+table.samples {
+    margin-top: 2em;
+    margin-bottom: 2em;
     font-size: 70%;
 }
 
-table.samples {
-    margin-bottom: 2em;
+table.bots {
+    margin-top: 2em;
+    font-size: 70%;
+}
+
+table.leaderboard {
+    margin-top: 2em;
+    font-size: 70%;
 }
 
 table.samples tr td {

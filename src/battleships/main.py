@@ -17,6 +17,7 @@ from battleships.conf import Conf
 from battleships.data import UsersDataAsync as UsersData
 from battleships.queues import QueueBotGame, QueueBotScoring
 from bson.objectid import ObjectId
+from operator import itemgetter
 
 
 class BaseHandler(tornado.web.RequestHandler):
@@ -180,7 +181,17 @@ class GamesHandler(BaseHandler):
     @tornado.gen.coroutine
     def get(self):
         """Render the page for showing game visualisations."""
-        self.render("games.html", bots=[], botlen=0)
+
+        bot_id = ObjectId(self.get_argument("bot_id"))
+        user_id = self.get_current_user()["id"]
+        user = yield UsersData(self.settings["db"]).read(user_id)
+
+        # lookup bot number 
+        bot_ids = map(itemgetter("bot_id"), user.get("bot_history", []))
+        bot_ids.sort(reverse=True)
+        bot_num = bot_ids.index(bot_id) + 1
+
+        self.render("games.html", bot_num=bot_num, user=user)
 
 
 # API --------------------------------------------------------------------------
