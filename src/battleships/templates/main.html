@@ -20,7 +20,7 @@
 
             <form method="POST" enctype="multipart/form-data" class="pure-form" role="form">
                 <fieldset>
-                    <legend>Hello {{ current_user["name"] }}</legend>
+                    <legend>Hello {{ current_user["facebook_data"]["name"] }}</legend>
                     <input type="file" name="bot_file">
                     <button type="submit" class="pure-button pure-button-primary">Score my bot</button>
                     <button id="how-to-button" type="button" class="pure-button pure-button-primary">How do I make a bot?</button>

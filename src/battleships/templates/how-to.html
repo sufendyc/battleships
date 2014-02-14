@@ -98,9 +98,9 @@ foreach ($shot_grid as $i =&gt; $state) {
                         </td>
                         <td>JavaScript
 <pre>
-#!?
+#!/usr/bin/js
 
-var shotGrid = process.argv[1];
+var shotGrid = process.argv[2];
 shotGrid = shotGrid.split(",");
 shotGrid.forEach(function(state, i) {
     if (state === "0") { // unknown

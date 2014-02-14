@@ -2,6 +2,10 @@ version: 1
 disable_existing_loggers: false
 
 loggers:
+  http:
+    handlers:       [stream]
+    level:          INFO
+    propagate:      false
   queue-bot-game:
     handlers:       [stream]
     level:          INFO

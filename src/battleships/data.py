@@ -5,24 +5,48 @@ import tornado.gen
 
 
 class UsersDataAsync(object):
-    """Async access to the users data, used by the tornado server."""
+    """Async access to the users data, used by the tornado server.
+    
+    Requires the following indices:
+
+        * facebook_data.id / ascending
+        * verify_token / ascending
+
+    """
 
     def __init__(self, db):
         self._conn = db.users
 
     @tornado.gen.coroutine
-    def create(self, facebook_user):
-        doc = {
-            "_id":                  facebook_user["id"],
-            "facebook_data":        facebook_user,
-            "state":                _State.NEW,
-            "score_best":           {"value": None},
-            }
-        yield motor.Op(self._conn.insert, doc) 
+    def bind(self, verify_token, facebook_data):
+        """Using a verify token as authentication, bind a Facebook account with
+        an Experian account.
+        """
+        if not verify_token:
+            raise Exception("No verify token")
+        user = yield motor.Op(
+            self._conn.find_one, {"verify_token": verify_token})
+        if user is None:
+            raise Exception("Invalid verify token")
+        if "facebook_data" in user:
+            raise Exception("Verify token already used")
+        user.update({
+            "facebook_data":    facebook_data,
+            "state":            _State.NEW,
+            "score_best":       {"value": None},
+            })
+        yield motor.Op(self._conn.save, user) 
+        raise tornado.gen.Return(user["_id"])
 
     @tornado.gen.coroutine
     def read(self, user_id):
         doc = yield motor.Op(self._conn.find_one, user_id)
+        raise tornado.gen.Return(doc)
+
+    @tornado.gen.coroutine
+    def read_by_facebook_id(self, fb_user_id):
+        doc = yield motor.Op(
+            self._conn.find_one, {"facebook_data.id": fb_user_id})
         raise tornado.gen.Return(doc)
 
     _MAX_NUM_USERS = 1000
@@ -34,7 +58,9 @@ class UsersDataAsync(object):
             "score_history", 
             "state",
             "score_best.value"], 1)
-        cursor = self._conn.find({}, projection).sort("score_best.value")
+        cursor = self._conn.find(
+            {"facebook_data": {"$exists": True}}, # only auth'd users
+            projection).sort("score_best.value")
         result = yield motor.Op(cursor.to_list, length=self._MAX_NUM_USERS)
         raise tornado.gen.Return(result) 
 

@@ -10,6 +10,7 @@ import tornado.auth
 import tornado.gen
 import tornado.ioloop
 import tornado.web
+import urlparse
 import yaml
 from battleships.cache import CacheBotGame
 from battleships.conf import Conf
@@ -24,10 +25,18 @@ class BaseHandler(tornado.web.RequestHandler):
         user_json = self.get_secure_cookie("session")
         if not user_json: 
             return None
-        return tornado.escape.json_decode(user_json)
+        else:
+            user_data = tornado.escape.json_decode(user_json)
+            user_data["id"] = ObjectId(user_data["id"])
+            return user_data
 
 
 # WWW --------------------------------------------------------------------------
+
+MSG_NO_BOT = "Oops, looks like you didn't attach the bot file."
+MSG_BOT_RECEIVED = \
+"""We've received your bot and have queued it for scoring. This process takes \
+roughly 20 minutes, so check back then."""
 
 class AuthLoginHandler(BaseHandler, tornado.auth.FacebookGraphMixin):
     # authentication logic based on:
@@ -57,21 +66,50 @@ class AuthLoginHandler(BaseHandler, tornado.auth.FacebookGraphMixin):
 
     @tornado.web.asynchronous
     @tornado.gen.coroutine
-    def _on_auth(self, user):
+    def _on_auth(self, facebook_data):
 
         # set the secure cookie
-        if not user:
-            raise tornado.web.HTTPError(500, "Facebook auth failed")
-        self.set_secure_cookie("session", tornado.escape.json_encode(user))
+        if not facebook_data:
+            self.settings["log"].warning("Failed Facebook authentication")
+            raise tornado.web.HTTPError(httplib.BAD_REQUEST)
 
-        # If this is the first time the user has logged in, create a record for
-        # them. For simplicity we'll use Facebook's user IDs.
+        # test whether the Facebook user is recognised
         db = UsersData(self.settings["db"])
-        user_doc = yield db.read(user["id"])
-        if user_doc is None:
-            yield db.create(user)
+        user = yield db.read_by_facebook_id(facebook_data["id"])
+
+        # first login for the user so authenticate them using the verify token
+        # then bind the Facebook account to the Experian account
+        if user is None:
+            verify_token = self._get_verify_token()
+            try:
+                user_id = yield db.bind(verify_token, facebook_data)
+            except Exception as e:
+                self.settings["log"].warning("Failed to bind: %s" % e)
+                raise tornado.web.HTTPError(httplib.BAD_REQUEST)
+        else:
+            user_id = user["_id"]
+
+        # write user ID and facebook data to secure session cookie
+        session_data = {
+            "id":               str(user_id),
+            "facebook_data":    facebook_data,
+            }
+        self.set_secure_cookie(
+            "session", tornado.escape.json_encode(session_data))
 
         self.redirect(self.get_argument("next", "/"))
+
+    def _get_verify_token(self):
+        """Attempt to read a verify token from the original query string
+        which authenticates a user during their first login.
+        """
+        arg_next = self.get_argument("next", "/")
+        qs = urlparse.parse_qs(urlparse.urlparse(arg_next).query)
+        verify_token = qs.get("verify_token")
+        if verify_token:
+            return verify_token[0]
+        else:
+            return None
 
 
 class MainHandler(BaseHandler):
@@ -95,7 +133,7 @@ class MainHandler(BaseHandler):
 
         # check a bot was uploaded
         if "bot_file" not in self.request.files:
-            self.render("msg.html", msg="Oops you didn't attach a bot file.")
+            self.render("msg.html", msg=MSG_NO_BOT)
 
         # save the bot file to disk and make it executable
         bot_id = ObjectId() 
@@ -124,7 +162,7 @@ class MainHandler(BaseHandler):
         QueueBotScoring.add(user_id, bot_id)
 
         # display the bot received alert informing the user what happens next
-        self.render("msg.html", msg="We've got your bot and will be scoring it shortly. Check back from time to time to see how it's going.")
+        self.render("msg.html", msg=MSG_BOT_RECEIVED)
 
 
 class HowToHandler(BaseHandler):
@@ -142,20 +180,7 @@ class GamesHandler(BaseHandler):
     @tornado.gen.coroutine
     def get(self):
         """Render the page for showing game visualisations."""
-
-        # get bot data from the database
-        user_id = self.get_current_user()["id"]
-        user = yield UsersData(self.settings["db"]).read(user_id)
-
-        # convert ObjectIds to strings for JSON serialisation
-        bots = user.get("bot_history", [])
-
-        def fmt(bot):
-            bot["bot_id"] = str(bot["bot_id"])
-            bot["time_human"] = datetime.datetime.fromtimestamp(bot['time']).strftime('%H:%M:%S %Y-%m-%d')
-        map(fmt, bots)
-        bots = sorted(bots, key=lambda b: -b['time'])
-        self.render("games.html", bots=bots, botlen=len(bots))
+        self.render("games.html", bots=[], botlen=0)
 
 
 # API --------------------------------------------------------------------------
@@ -208,14 +233,14 @@ class PlayersHandler(APIBaseHandler):
     @tornado.web.asynchronous
     @tornado.gen.coroutine
     def get(self, user_id):
+        user_id = ObjectId(user_id)
         user = yield UsersData(self.settings["db"]).read(user_id)
         self.render("players.html", user=user) 
 
 
 class BotGameRequestHandler(APIBaseHandler):
 
-    # TODO enable
-    #@tornado.web.authenticated
+    @tornado.web.authenticated
     def post(self):
         """Queue a bot to be played.
 
@@ -240,8 +265,7 @@ class BotGameRequestHandler(APIBaseHandler):
 
 class BotGameResultHandler(APIBaseHandler):
 
-    # TODO enable
-    #@tornado.web.authenticated
+    @tornado.web.authenticated
     def get(self, token):
         """Return the results of a bot game (see BotGameRequestHandler)."""
         result = CacheBotGame.get(token)
@@ -252,10 +276,10 @@ class BotGameResultHandler(APIBaseHandler):
 
 def main():
 
-    # TODO move to logging module
     # init logging
     logging_conf = yaml.load(open("/etc/battleships/logging.yaml"))
     logging.config.dictConfig(logging_conf)
+    log = logging.getLogger("http")
 
     # load config
     Conf.init()
@@ -270,23 +294,23 @@ def main():
     application = tornado.web.Application([
 
         # WWW
-        (r"/",                                  MainHandler),               # GET/POST
-        (r"/how-to/?",                          HowToHandler),              # GET
-        (r"/games/?",                           GamesHandler),              # GET
+        (r"/",                                  MainHandler),
+        (r"/how-to/?",                          HowToHandler),
+        (r"/games/?",                           GamesHandler),
 
         # API
-        (r"/players/([0-9]{1,99})/?",           PlayersHandler),            # GET
-        (r"/games/data?",                       BotGameRequestHandler),     # POST
-        (r"/games/data/([0-9a-f]{24})/?",       BotGameResultHandler),      # GET
-        (r"/auth/login/?",                      AuthLoginHandler),          # GET
+        (r"/players/([0-9a-f]{24})/?",          PlayersHandler),
+        (r"/games/data?",                       BotGameRequestHandler),
+        (r"/games/data/([0-9a-f]{24})/?",       BotGameResultHandler),
+        (r"/auth/login/?",                      AuthLoginHandler),
         ],
 
+        log=            log,
         db=             db,
         cookie_secret=  Conf["cookie-secret"],
         fb_app_id=      Conf["fb-app-id"],
         fb_app_secret=  Conf["fb-app-secret"],
-        # TODO enable
-        #xsrf_cookies=   True,
+        xsrf_cookies=   True,
         login_url=      "/auth/login",
         template_path=  os.path.join(os.path.dirname(__file__), "templates"),
         static_path=    os.path.join(os.path.dirname(__file__), "static"),
