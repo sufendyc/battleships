@@ -311,7 +311,7 @@ def main():
 
         # API
         (r"/players/([0-9a-f]{24})/?",          PlayersHandler),
-        (r"/games/data?",                       BotGameRequestHandler),
+        (r"/games/data/?",                      BotGameRequestHandler),
         (r"/games/data/([0-9a-f]{24})/?",       BotGameResultHandler),
         (r"/auth/login/?",                      AuthLoginHandler),
         ],
