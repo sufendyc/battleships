@@ -20,6 +20,28 @@ table {
 	width: 400px;
 }
 
+
+img.logo {
+    padding-top: 15px;
+}
+
+img.avatar {
+    padding-right: 10px;
+}
+
+.alert {
+    margin-bottom: 10px;
+    margin-top: 15px;
+}
+
+table {
+    font-size: 18px;
+}
+
+#board {
+	width: 400px;
+}
+
 #board tr td{
 	height:	40px;
 	width: 	40px;
@@ -35,24 +57,51 @@ rect.bordered {
 
 rect.hit {
 	fill: #FF0000;
-	transition : fill 200ms ease-out; 
-	-webkit-transition : fill 200ms ease-out; 
-	-moz-transition : fill 200ms ease-out;
-	-o-transition : fill 200ms ease-out;
+	transition : fill 100ms ease-out; 
+	-webkit-transition : fill 100ms ease-out; 
+	-moz-transition : fill 100ms ease-out;
+	-o-transition : fill 100ms ease-out;
 }
 
 rect.miss {
 	fill: #0000FF;
-	transition : fill 200ms ease-out; 
-	-webkit-transition : fill 200ms ease-out; 
-	-moz-transition : fill 200ms ease-out;
-	-o-transition : fill 200ms ease-out;
+	transition : fill 100ms ease-out; 
+	-webkit-transition : fill 100ms ease-out; 
+	-moz-transition : fill 100ms ease-out;
+	-o-transition : fill 100ms ease-out;
 }
 
 rect.empty {
 	fill: #ADD8E6;
-	transition : fill 200ms ease-out; 
-	-webkit-transition : fill 200ms ease-out; 
-	-moz-transition : fill 200ms ease-out;
-	-o-transition : fill 200ms ease-out;
+	transition : fill 100ms ease-out; 
+	-webkit-transition : fill 100ms ease-out; 
+	-moz-transition : fill 100ms ease-out;
+	-o-transition : fill 100ms ease-out;
+}
+
+/* Absolute Center CSS Spinner */
+.loading {
+  position: fixed;
+  background: url("../img/ajax-loader.gif") no-repeat center center;
+  z-index: 999;
+  overflow: show;
+  margin: auto;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  display:none;
+}
+
+/* Transparent Overlay */
+.loading:before {
+  content: '';
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.4;
+  background-color: #B5B5B5;
 }
