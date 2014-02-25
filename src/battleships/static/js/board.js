@@ -35,7 +35,7 @@ var BoardManager = function(){
     this.animationSpeedIdx = 2;
     // Leavin ing 
     // this.animationSpeed = this.getAnimationSpeed();
-    this.animationSpeed = 100;
+    this.animationSpeed = 200;
 
     // $(".change-speed ul li a").click(function(){
     //     $(".change-speed > div").html($(this).text() + ' <span class="caret"></span>');
