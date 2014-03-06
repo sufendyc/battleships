@@ -33,9 +33,10 @@ var BoardManager = function(){
     
     // Default animation speed
     this.animationSpeedIdx = 2;
-    // Leavin ing 
     // this.animationSpeed = this.getAnimationSpeed();
     this.animationSpeed = 200;
+
+    this.getNewGame();
 
     // $(".change-speed ul li a").click(function(){
     //     $(".change-speed > div").html($(this).text() + ' <span class="caret"></span>');
@@ -62,31 +63,51 @@ var BoardManager = function(){
     });
 
     $('#game-start').on('click', function(){
-        self.tickAllowed = false;
-        var data = $.cookie(); 
-        data.bot_id = BS_UTILS.qs('bot_id');
-
-
-        $.ajax({
-          type: 'POST',
-          dataType: "json",
-          url: '/games/data',
-          data: data,
-          success: function(data){
-            self.renderLoading();
-            // Amend data to board
-
-            var token = data.data.token;
-
-            self.dataFromToken(token);
-          }
-        });
+        self.getNewGame();
     });
 
     $('#replay').on('click', function(){
         self.currentTick = 0;
         self.tick();
     });
+};
+
+BoardManager.prototype.getNewGame = function(){
+    var self = this;
+    self.tickAllowed = false;
+    var data = $.cookie();
+    data.bot_id = BS_UTILS.qs('bot_id');
+
+    $.ajax({
+      type: 'POST',
+      dataType: "json",
+      url: '/games/data',
+      data: data,
+      success: function(data){
+        self.renderLoading();
+        // Amend data to board
+        var token = data.data.token;
+        self.dataFromToken(token);
+      },
+      error: function(){
+        self.removeLoading();
+        self.showError("Something has gone wrong.");
+      }
+    });
+};
+
+BoardManager.prototype.showError = function(message){
+    if(!message){
+        message = "Something has gone wrong.";
+    } else {
+        message = "There was an error processing your bot: " + message;
+    }
+    $('#error-notification > p').text(message);
+    $('#error-notification').show();
+};
+
+BoardManager.prototype.hideError = function(){
+    $('#error-notification').hide();
 };
 
 BoardManager.prototype.renderLoading = function(){
@@ -105,11 +126,13 @@ BoardManager.prototype.dataFromToken = function(token){
       dataType: "json",
       url: '/games/data/'+ self.currentToken,
       success: function(data){
-
         if(!data.data){
             setTimeout(function(){
                 self.dataFromToken(self.currentToken);
             }, 250);
+        } else if (data.data.success === false){
+            self.showError(data.data.error);
+            self.removeLoading();
         } else {
             // Amend data to board
             self.removeLoading();
@@ -119,6 +142,10 @@ BoardManager.prototype.dataFromToken = function(token){
             self.tickAllowed = true;
             self.tick();
         }
+      },
+      error: function(){
+        self.removeLoading();
+        self.showError();
       }
     });
 };

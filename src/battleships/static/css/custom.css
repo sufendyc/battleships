@@ -101,3 +101,13 @@ rect.empty {
   opacity: 0.4;
   background-color: #B5B5B5;
 }
+
+aside.error {
+  background: #FF0000;
+  padding: 0.3em 1em  ;
+  border-radius: 3px;
+  color: #fff;
+  margin: 20px 0;
+  display: none;
+}
+
