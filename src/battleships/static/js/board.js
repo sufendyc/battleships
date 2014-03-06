@@ -100,7 +100,7 @@ BoardManager.prototype.showError = function(message){
     if(!message){
         message = "Something has gone wrong.";
     } else {
-        message = "There was an error processing your bot: " + message;
+        message = "There was an error processing this bot: " + message;
     }
     $('#error-notification > p').text(message);
     $('#error-notification').show();
