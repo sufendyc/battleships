@@ -33,7 +33,6 @@ class UsersDataAsync(object):
         user.update({
             "facebook_data":    facebook_data,
             "state":            _State.NEW,
-            "score_best":       {"value": None},
             })
         yield motor.Op(self._conn.save, user) 
         raise tornado.gen.Return(user["_id"])
@@ -55,28 +54,22 @@ class UsersDataAsync(object):
         projection = dict.fromkeys([
             "facebook_data.name", 
             "facebook_data.picture.data.url",
-            "score_history", 
             "state",
-            "score_best.value"], 1)
+            "best_score.score"], 1)
         cursor = self._conn.find(
             {"facebook_data": {"$exists": True}}, # only auth'd users
-            projection).sort("score_best.value")
+            projection).sort("best_score.score")
         result = yield motor.Op(cursor.to_list, length=self._MAX_NUM_USERS)
         raise tornado.gen.Return(result) 
 
     @tornado.gen.coroutine
-    def update_after_bot_submit(self, user_id, bot_id):
-
-        user = yield motor.Op(self._conn.find_one, user_id)
-        now = long(time.time())
-
-        user["state"] = _State.PENDING
-        user.setdefault("bot_history", []).append({
-            "time":     now,
-            "bot_id":   bot_id,
-            })
-
-        yield motor.Op(self._conn.save, user)
+    def set_state_to_scoring(self, user_id):
+        """Update the user's state to reflect that they have a bot pending
+        scoring.
+        """
+        doc = yield motor.Op(self._conn.find_one, user_id)
+        doc["state"] = _State.PENDING
+        yield motor.Op(self._conn.save, doc)
 
 
 class UsersDataSync(object):
@@ -85,54 +78,41 @@ class UsersDataSync(object):
     _conn = pymongo.MongoClient().battleships.users 
 
     @classmethod
-    def update_after_scoring_success(cls, user_id, bot_id, score):
+    def set_state_to_scored_success(cls, user_id, bot_id, score):
 
-        user = cls._conn.find_one(user_id)
         now = long(time.time())
+        doc = cls._conn.find_one(user_id)
 
-        # maybe update the best score
-        score_best = user["score_best"]["value"]
-        if score_best is None or score < score_best: # lower is better
-            is_best = True
-            user["score_best"] = {
-                "time":     now,
-                "bot_id":   bot_id,
-                "value":    score,
-                }
+        def is_best_score():
+            if "best_score" not in doc:
+                return True
+            return score < doc["best_score"]["score"] # lower is better
+
+        if is_best_score():
+            doc.update({
+                "best_score": {
+                    "score":        score,
+                    "bot_id":       bot_id,
+                    },
+                "state":            _State.BEST,
+                })
         else:
-            is_best = False
+            doc["state"] =          _State.SUCCESS
 
-        # update the score history
-        user.setdefault("score_history", []).append({
-            "time":     now,
-            "bot_id":   bot_id,
-            "value":    score,
-            "success":  True,
-            })
-
-        # update the user's state
-        user["state"] = _State.BEST if is_best else _State.SUCCESS
-
-        cls._conn.save(user)
+        doc["last_score"] = {"time": now}
+        cls._conn.save(doc)
 
     @classmethod
-    def update_after_scoring_error(cls, user_id, bot_id, error):
-
-        user = cls._conn.find_one(user_id)
+    def set_state_to_scored_error(cls, user_id):
         now = long(time.time())
-
-        # update the score history
-        user.get("score_history", []).append({
-            "time":     now,
-            "bot_id":   bot_id,
-            "error":    str(error),
-            "success":  False,
+        doc = cls._conn.find_one(user_id)
+        doc.update({
+            "state":            _State.ERROR,
+            "last_score": {
+                "time":         now,
+                },
             })
-
-        # update the user's state
-        user["state"] = _State.ERROR
-
-        cls._conn.save(user)
+        cls._conn.save(doc)
 
 
 class _State(object):

@@ -14,7 +14,8 @@ import time
 import traceback
 import yaml
 from battleships.conf import Conf
-from battleships.data import UsersDataSync as UsersData
+from battleships.data.bots import BotsDataSync as BotsData
+from battleships.data.users import UsersDataSync as UsersData
 from operator import itemgetter
 
 
@@ -181,6 +182,8 @@ class GameManager(object):
 
         """
 
+        if seed is None:
+            seed = random.random()
         random.seed(seed)
 
         # init game state
@@ -195,27 +198,30 @@ class GameManager(object):
                 move = cls._play_next_bot_move(bot_id, ship_grid, shot_grid)
                 moves.append(move)
             return {
-                "success":  True,
-                "moves":    moves,
-                "ships":    ship_grid.squares,
+                "success":      True,
+                "moves":        moves,
+                "ships":        ship_grid.squares,
                 }
 
         except _BotMoveIllegalException:
             return {
-                "success":  False,
-                "error":    "Bot made an illegal move",
+                "success":      False,
+                "error":        "Bot made an illegal move",
+                "seed":         seed,
                 }
 
         except _BotMoveTimeoutException:
             return {
-                "success":  False,
-                "error":    "Bot timeout",
+                "success":      False,
+                "error":        "Bot timeout",
+                "seed":         seed,
                 }
 
         except _BotErrorException:
             return {
-                "success":  False,
-                "error":    "Bot syntax error",
+                "success":      False,
+                "error":        "Bot syntax error",
+                "seed":         seed,
                 }
 
     @staticmethod
@@ -352,19 +358,25 @@ class TournamentManager(object):
             for i in range(num_games):
                 result = GameManager.play(bot_id)
                 if not result["success"]:
-                    raise _ScoringException(result["error"])
+                    raise _ScoringException(
+                        result["error"], result["seed"])
                 move_counts.append(len(result["moves"]))
                 cls._log.info("%s played %s/%s" % (bot_id, i+1, num_games))
             
             score = sum(move_counts) / float(num_games) # average
-            UsersData.update_after_scoring_success(user_id, bot_id, score)
+            BotsData.score_success(bot_id, score)
+            UsersData.set_state_to_scored_success(user_id, bot_id, score)
 
         except _ScoringException as e:
-            cls._log.warning("%s scoring aborted: %s" % (bot_id, e))
-            UsersData.update_after_scoring_error(user_id, bot_id, e)
+            cls._log.warning("%s scoring aborted: %s" % (bot_id, e.error))
+            BotsData.score_error(bot_id, e.game_seed)
+            UsersData.set_state_to_scored_error(user_id)
 
 
 class _ScoringException(Exception):
     """During scoring the bot raised an error."""
-    pass
+    
+    def __init__(self, error, game_seed):
+        self.error = error
+        self.game_seed = game_seed
 

@@ -25,7 +25,7 @@
             <table>
                 <tr>
                     <td width="75px"><img class="avatar" src="{{ user["facebook_data"]["picture"]["data"]["url"] }}"></td>
-                    <td><h2>{{ user["facebook_data"]["name"] }}'s Bot #{{ bot_num }}</h2></td>
+                    <td><h2>{{ user["facebook_data"]["name"] }}'s Bot {{ str(bot["_id"]) }}</h2></td>
                     <td style="text-align: right;">
                         <button id="bots" data-player-id="{{ user["_id"] }}" type="button" class="pure-button pure-button-primary">{{ user["facebook_data"]["name"] }}'s Bots</button>
                         <button id="home" type="button" class="pure-button pure-button-primary">Leaderboard</button>

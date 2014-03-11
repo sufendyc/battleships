@@ -30,14 +30,18 @@
                     <tr>
                         <th>#</th>
                         <th>Uploaded</th>
+                        <th>Success</th>
+                        <th>Score</th>
                     </tr>
                 </thead>
 
                 <tbody>
-                {% for i, bot in sorted(enumerate(user.get("bot_history", [])), reverse=True) %}
-                    <tr data-bot-id="{{ bot["bot_id"] }}">
+                {% for i, bot in sorted(enumerate(bots), reverse=True) %}
+                    <tr data-bot-id="{{ bot["_id"] }}">
                         <td>{{ i+1 }}</td>
-                        <td><span data-timestamp="{{ bot["time"] }}"></span></td>
+                        <td><span data-timestamp="{{ bot["created_time"] }}"></span></td>
+                        <td>{{ {"pending": "Pending", "success": "Yes", "error": "No"}[bot["state"]] }}</td>
+                        <td>{{ bot["score"] if bot["state"] == "success" else "-" }}</td>
                     </tr>
                 {% end %}
                 </tbody>

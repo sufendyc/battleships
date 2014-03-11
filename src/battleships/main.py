@@ -14,7 +14,8 @@ import urlparse
 import yaml
 from battleships.cache import CacheBotGame
 from battleships.conf import Conf
-from battleships.data import UsersDataAsync as UsersData
+from battleships.data.bots import BotsDataAsync as BotsData
+from battleships.data.users import UsersDataAsync as UsersData
 from battleships.queues import QueueBotGame, QueueBotScoring
 from bson.objectid import ObjectId
 from operator import itemgetter
@@ -150,14 +151,13 @@ class MainHandler(BaseHandler):
         # the package "tofrodos"). It's harmless running this convert on a 
         # bot uploaded from a Linux system; and easier than detecting the
         # system type.
-
-        # This was causing an error when loading locally
         subprocess.call(["fromdos", bot_path])
-    
-        # update the user's data with the bot submission
+
+        # write bot to db and update user's state
         user_id = self.get_current_user()["id"]
-        yield UsersData(self.settings["db"]).\
-            update_after_bot_submit(user_id, bot_id)    
+        db = self.settings["db"]
+        yield BotsData(db).add(bot_id, user_id)
+        yield UsersData(db).set_state_to_scoring(user_id)
 
         # put the bot in the queue for scoring
         QueueBotScoring.add(user_id, bot_id)
@@ -182,16 +182,12 @@ class GamesHandler(BaseHandler):
     def get(self):
         """Render the page for showing game visualisations."""
 
+        db = self.settings["db"]
         bot_id = ObjectId(self.get_argument("bot_id"))
-        user_id = self.get_current_user()["id"]
-        user = yield UsersData(self.settings["db"]).read(user_id)
+        bot = yield BotsData(db).read(bot_id)
+        user = yield UsersData(db).read(bot["user_id"])
 
-        # lookup bot number 
-        bot_ids = map(itemgetter("bot_id"), user.get("bot_history", []))
-        bot_ids.sort(reverse=True)
-        bot_num = bot_ids.index(bot_id) + 1
-
-        self.render("games.html", bot_num=bot_num, user=user)
+        self.render("games.html", bot=bot, user=user)
 
 
 # API --------------------------------------------------------------------------
@@ -206,12 +202,12 @@ class APIBaseHandler(BaseHandler):
         http://instagram.com/developer/endpoints/
         """
 
-        exception = kwargs['exc_info'][1]
+        exception = kwargs["exc_info"][1]
 
         # hide details of internal server errors from the client
         if not isinstance(exception, tornado.web.HTTPError):
             exception = tornado.web.HTTPError(httplib.INTERNAL_SERVER_ERROR)
-            exception.message = 'Oops, an error occurred.'
+            exception.message = "Oops, an error occurred."
 
         code = getattr(exception, "custom_error_code", status_code)
         self.finish({
@@ -245,8 +241,10 @@ class PlayersHandler(APIBaseHandler):
     @tornado.gen.coroutine
     def get(self, user_id):
         user_id = ObjectId(user_id)
-        user = yield UsersData(self.settings["db"]).read(user_id)
-        self.render("players.html", user=user) 
+        db = self.settings["db"]
+        user = yield UsersData(db).read(user_id)
+        bots = yield BotsData(db).read_by_user(user_id)
+        self.render("players.html", user=user, bots=bots) 
 
 
 class BotGameRequestHandler(APIBaseHandler):
