@@ -49,7 +49,7 @@
                         <td>{{ user["facebook_data"]["name"] }}</td>
                         <td>{{ user["best_score"]["score"] if "best_score" in user else "-" }}</td>
                         <td>{{ user["state"] }}</span></td>
-                        <td><span data-timestamp="{{ user["last_score"]["time"] if "last_score" in user else "-" }}"></span></td>
+                        <td><span data-timestamp="{{ user["last_score"]["time"] if "last_score" in user else "" }}"></span></td>
                     </tr>
                 {% end %}
                 </tbody>

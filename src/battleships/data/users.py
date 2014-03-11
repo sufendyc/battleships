@@ -55,6 +55,7 @@ class UsersDataAsync(object):
             "facebook_data.name", 
             "facebook_data.picture.data.url",
             "state",
+            "last_score.time",
             "best_score.score"], 1)
         cursor = self._conn.find(
             {"facebook_data": {"$exists": True}}, # only auth'd users
