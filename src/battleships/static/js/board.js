@@ -77,6 +77,7 @@ BoardManager.prototype.getNewGame = function(){
     self.tickAllowed = false;
     var data = $.cookie();
     data.bot_id = BS_UTILS.qs('bot_id');
+    data.seed = BS_UTILS.qs('seed');
 
     $.ajax({
       type: 'POST',
