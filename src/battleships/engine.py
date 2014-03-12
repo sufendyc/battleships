@@ -203,12 +203,14 @@ class GameManager(object):
                 "ships":        ship_grid.squares,
                 }
 
-        except _BotMoveIllegalException:
-            return {
+        except _BotMoveIllegalException as e:
+            data = e.data.copy()
+            data.update({
                 "success":      False,
                 "error":        "Bot made an illegal move",
                 "seed":         seed,
-                }
+                })
+            return data
 
         except _BotMoveTimeoutException:
             return {
