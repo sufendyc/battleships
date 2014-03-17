@@ -254,7 +254,7 @@ class GameManager(object):
         # Raise `_BotErrorException` if the bot raises an error during 
         # execution.
         def alarm_handler(signum, frame):
-            raise BotMoveTimeoutException({
+            raise _BotMoveTimeoutException({
                 "game_state":   str(shot_grid),
                 })
         signal.signal(signal.SIGALRM, alarm_handler)
