@@ -42,7 +42,7 @@ mongo --eval "new Mongo().getDB('battleships').users.save({'verify_token': '2584
 apt-get -y install git-core
 cd ~
 # ignore SSH host authenticity check
-echo -e "Host github.com\n\tStrictHostKeyChecking no\n" >> ~/.ssh/config
+echo -e "Host github.com\n\tStrictHostKeyChecking no\n" >> /root/.ssh/config
 git clone git@github.com:jhibberd/battleships.git
 ln -s ~/battleships/src/battleships /usr/local/lib/python2.7/dist-packages/battleships
 mkdir /etc/battleships
