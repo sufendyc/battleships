@@ -11,7 +11,7 @@ apt-get -y install mongodb-10gen
 apt-get -y install redis-server
 
 # convert bots uploaded from a Windows system
-apt-get -y install fromtodos
+apt-get -y install tofrodos
 
 # required for 'motor' python package
 apt-get -y install build-essential python-dev
