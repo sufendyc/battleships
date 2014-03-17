@@ -49,6 +49,17 @@ mkdir /etc/battleships
 ln -s ~/battleships/cfg/logging.yaml /etc/battleships/logging.yaml
 ln -s ~/battleships/cfg/system.dev.yaml /etc/battleships/system.yaml
 
+# create upstart job
+echo "start on runlevel [2345]
+stop on runlevel [06]
+
+console log
+script
+    exec python $HOME/battleships/src/battleships/main.py
+end script
+" > /etc/init/battleships.conf
+initctl reload-configuration
+
 # run application
-python battleships/src/battleships/main.py &
+start battleships
 
