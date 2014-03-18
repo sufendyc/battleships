@@ -13,3 +13,13 @@ Try it out:
 ```
 http://battleships.local?verify_token=25848a988e544e88986b46324887f675
 ```
+
+Restart the application:
+```
+sudo restart battleships
+```
+
+Monitor the log:
+```
+sudo tail -f /var/log/upstart/battleships.log
+```
