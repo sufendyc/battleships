@@ -3,35 +3,25 @@
 http://en.wikipedia.org/wiki/Battleship_(game)
 """
 
-import logging.config
-import os
-import os.path
 import random
-import signal
-import subprocess
-import time
-import traceback
-import yaml
-from battleships.conf import Conf
-from battleships.data.bots import BotsDataSync as BotsData
-from battleships.data.users import UsersDataSync as UsersData
+from game import Game
 from operator import itemgetter
 
 
 class ShipGridSquareState(object):
-    SEA =                   0
-    AIRCRAFT_CARRIER =      1
-    BATTLESHIP =            2
-    SUBMARINE =             3
-    DESTROYER =             4
-    PATROL_BOAT =           5
+    SEA = 0
+    AIRCRAFT_CARRIER = 1
+    BATTLESHIP = 2
+    SUBMARINE = 3
+    DESTROYER = 4
+    PATROL_BOAT = 5
 
 
 class ShotGridSquareState(object):
-    UNKNOWN =   0
-    MISS =      -1
-    HIT =       1
-    SUNK =      2
+    UNKNOWN = 0
+    MISS = -1
+    HIT = 1
+    SUNK = 2
 
 
 class Grid(object):
@@ -50,7 +40,7 @@ class Grid(object):
 
     def valid_coord(self, x, y):
         """Return whether x,y are valid grid coordinates."""
-        return x >= 0 and x < self.SIZE and y >= 0 and y < self.SIZE
+        return 0 <= x < self.SIZE and 0 <= y < self.SIZE
 
     def rand_square(self):
         """Return the coordinates of a random grid square."""
@@ -141,7 +131,7 @@ class ShipManager(object):
 
         for x, y in seq:
             if not ship_grid.valid_coord(x, y) or \
-                ship_grid.get(x, y) != ShipGridSquareState.SEA:
+                    ship_grid.get(x, y) != ShipGridSquareState.SEA:
                 return False
 
         for x, y in seq:
@@ -154,7 +144,7 @@ class BattleshipsGame(Game):
     def __init__(self, seed):
         """Prepare a new game.
         
-        Generate a random ship arragement. To make the game deterministic a 
+        Generate a random ship arrangement. To make the game deterministic a
         seed can be provided for the random number generator.
 
         The game stats consists of:
@@ -174,15 +164,20 @@ class BattleshipsGame(Game):
         # init game state
         self._ship_grid = ShipGrid(ShipGridSquareState.SEA)
         self._shot_grid = Grid(ShotGridSquareState.UNKNOWN)
-        ShipManager.arrange_on_grid(ship_grid)
+        ShipManager.arrange_on_grid(self._ship_grid)
 
         # count the number of moves made by the bot to determine its score
         self._num_moves = 0
 
     def get_state(self):
+        """Return the current game state.
+
+        Copies of the states are made to avoid returning references which will
+        be updated as the game progresses.
+        """
         return {
-            "ships":    self._ship_grid,
-            "moves":    self._shot_grid,
+            "ships":    list(self._ship_grid.squares),
+            "moves":    list(self._shot_grid.squares),
             }
 
     def get_next_bot_request(self):
@@ -191,7 +186,7 @@ class BattleshipsGame(Game):
         """
         return str(self._shot_grid)
 
-    def update_with_bot_response(self, bot_response):
+    def update_state_with_bot_response(self, bot_response):
 
         try:
             bot_response = int(bot_response)
@@ -202,7 +197,7 @@ class BattleshipsGame(Game):
             return False
 
         x, y = Grid.index_to_coord(bot_response)
-        if shot_grid.get(x, y) != ShotGridSquareState.UNKNOWN:
+        if self._shot_grid.get(x, y) != ShotGridSquareState.UNKNOWN:
             return False
 
         square_revealed = self._ship_grid.get(x, y)
@@ -223,11 +218,11 @@ class BattleshipsGame(Game):
                 if self._shot_grid.squares[i] == ShotGridSquareState.UNKNOWN:
                     is_sunk = False
                     break
-                    
+
             if is_sunk:
                 move_result = ShotGridSquareState.SUNK
                 for i in self._ship_grid.get_ship_squares(ship_type):
-                    shot_grid.squares[i] = ShotGridSquareState.SUNK
+                    self._shot_grid.squares[i] = ShotGridSquareState.SUNK
 
         self._num_moves += 1
 
@@ -241,12 +236,16 @@ class BattleshipsGame(Game):
         grid `hits_to_win`.
         """
         hits_made = len(filter(
-            lambda x: x == ShotGridSquareState.SUNK, shot_grid.squares))
+            lambda x: x == ShotGridSquareState.SUNK, self._shot_grid.squares))
         # index 1 of `SHIPS` is the ship size
         hits_to_win = sum(map(itemgetter(1), ShipManager.SHIPS))
         return hits_made == hits_to_win
 
     def get_score(self):
+        """A perfect score of 1 is given if all shots made by the bot hit a
+        ship and the worst score of 0 is given if all squares where hit in
+        order to sink the ships.
+        """
 
         num_ship_squares = \
             ShipGridSquareState.SEA + \
@@ -257,13 +256,10 @@ class BattleshipsGame(Game):
             ShipGridSquareState.PATROL_BOAT
 
         num_squares = len(self._ship_grid.squares)
-
         num_errors_possible = num_squares - num_ship_squares
-
         num_errors_made = self._num_moves - num_ship_squares
 
-        score = (num_error_possible - num_errors_made) / \
+        score = (num_errors_possible - num_errors_made) / \
             float(num_errors_possible)
-    
+
         return score
-        
