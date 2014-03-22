@@ -1,8 +1,13 @@
 import logging
-from battleships.engine import GameManager, TournamentManager
+import os.path
+from battleships.conf import Conf
+from battleships.engine.battleships import BattleshipsGame
+from battleships.player import Player
+from battleships.scorer import Scorer
 from bson.objectid import ObjectId
 from cache import CacheBotGame
 from multiprocessing import Process, Queue
+from Queue import Full
 
 
 class QueueBotGame(object):
@@ -42,7 +47,8 @@ class QueueBotGame(object):
         while True:
             msg = q.get()
             token, bot_id, seed = msg
-            result = GameManager.play(bot_id, seed)
+            bot_path = _get_bot_path(bot_id)
+            result = Player(BattleshipsGame).play(bot_path, seed)
             CacheBotGame.add(token, result)
             cls._log.info("%s played" % bot_id)
 
@@ -83,6 +89,10 @@ class QueueBotScoring(object):
         while True:
             msg = q.get()
             user_id, bot_id = msg
-            TournamentManager.play(user_id, bot_id)
+            bot_path = _get_bot_path(bot_id)
+            Scorer.score(user_id, bot_id, bot_path)
             cls._log.info("%s scored" % bot_id)
 
+
+def _get_bot_path(bot_id):
+    return os.path.join(Conf["bot-path"], str(bot_id))

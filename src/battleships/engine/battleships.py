@@ -4,7 +4,7 @@ http://en.wikipedia.org/wiki/Battleship_(game)
 """
 
 import random
-from game import Game
+from battleships.engine import Game
 from operator import itemgetter
 
 
@@ -139,7 +139,7 @@ class ShipManager(object):
         return True
 
 
-class BattleshipsGame(Game):
+class BattleshipsGame(object):
 
     def __init__(self, seed):
         """Prepare a new game.
@@ -158,7 +158,6 @@ class BattleshipsGame(Game):
                     [(3, -1), (13, 1), (14, 1), (39, -1), ...]
 
         """
-
         random.seed(seed)
 
         # init game state
@@ -263,3 +262,7 @@ class BattleshipsGame(Game):
             float(num_errors_possible)
 
         return score
+
+
+# TODO: does this work?
+Game.register(BattleshipsGame)
