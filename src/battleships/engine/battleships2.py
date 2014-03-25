@@ -246,6 +246,7 @@ class BattleshipsGame(object):
         order to sink the ships.
         """
 
+        """
         num_ship_squares = \
             ShipGridSquareState.SEA + \
             ShipGridSquareState.AIRCRAFT_CARRIER + \
@@ -262,6 +263,11 @@ class BattleshipsGame(object):
             float(num_errors_possible)
 
         return score
+        """
+
+        # for consistency the score will remain as the move count, for now
+        return len(self._shot_grid.squares) - \
+            self._shot_grid.squares.count(ShotGridSquareState.UNKNOWN)
 
 
 # TODO: does this work?
