@@ -3,7 +3,7 @@ import logging
 from battleships.conf import Conf
 from battleships.data.bots import BotsDataSync as BotsData
 from battleships.data.users import UsersDataSync as UsersData
-from battleships.engine.battleships import BattleshipsGame
+from battleships.engine.battleships2 import BattleshipsGame
 from battleships.player import Player
 
 

@@ -2,6 +2,7 @@ import motor
 import pymongo
 import time
 import tornado.gen
+from battleships.conf import Conf
 
 
 class UsersDataAsync(object):
@@ -20,7 +21,7 @@ class UsersDataAsync(object):
     @tornado.gen.coroutine
     def bind(self, verify_token, facebook_data):
         """Using a verify token as authentication, bind a Facebook account with
-        an Experian account.
+        an authorised account.
         """
         if not verify_token:
             raise Exception("No verify token")
@@ -51,6 +52,7 @@ class UsersDataAsync(object):
     _MAX_NUM_USERS = 1000
     @tornado.gen.coroutine
     def read_ranked_users(self):
+
         projection = dict.fromkeys([
             "facebook_data.name", 
             "facebook_data.picture.data.url",
@@ -61,6 +63,15 @@ class UsersDataAsync(object):
             {"facebook_data": {"$exists": True}}, # only auth'd users
             projection).sort("best_score.score")
         result = yield motor.Op(cursor.to_list, length=self._MAX_NUM_USERS)
+
+        # move users who have auth'd but not submitted a bot from the top of
+        # the list to the bottom
+        while True:
+            doc = result[0]
+            if "best_score" in doc and doc["best_score"]["score"]:
+                break
+            result.append(result.pop(0))
+
         raise tornado.gen.Return(result) 
 
     @tornado.gen.coroutine
@@ -76,13 +87,20 @@ class UsersDataAsync(object):
 class UsersDataSync(object):
     """Sync access to the users data, used by the worker process."""
 
-    _conn = pymongo.MongoClient().battleships.users 
+    @classmethod
+    def _get_conn(cls):
+        if not hasattr(cls, "_conn"):
+            cls._conn = pymongo.MongoClient(
+                host=Conf["mongodb"]["host"],
+                port=Conf["mongodb"]["port"],
+                ).battleships.users
+        return cls._conn
 
     @classmethod
     def set_state_to_scored_success(cls, user_id, bot_id, score):
 
         now = long(time.time())
-        doc = cls._conn.find_one(user_id)
+        doc = cls._get_conn().find_one(user_id)
 
         def is_best_score():
             if "best_score" not in doc:
@@ -98,22 +116,22 @@ class UsersDataSync(object):
                 "state":            _State.BEST,
                 })
         else:
-            doc["state"] =          _State.SUCCESS
+            doc["state"] = _State.SUCCESS
 
         doc["last_score"] = {"time": now}
-        cls._conn.save(doc)
+        cls._get_conn().save(doc)
 
     @classmethod
     def set_state_to_scored_error(cls, user_id):
         now = long(time.time())
-        doc = cls._conn.find_one(user_id)
+        doc = cls._get_conn().find_one(user_id)
         doc.update({
             "state":            _State.ERROR,
             "last_score": {
                 "time":         now,
                 },
             })
-        cls._conn.save(doc)
+        cls._get_conn().save(doc)
 
 
 class _State(object):

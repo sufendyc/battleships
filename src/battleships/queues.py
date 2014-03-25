@@ -1,7 +1,7 @@
 import logging
 import os.path
 from battleships.conf import Conf
-from battleships.engine.battleships import BattleshipsGame
+from battleships.engine.battleships2 import BattleshipsGame
 from battleships.player import Player
 from battleships.scorer import Scorer
 from bson.objectid import ObjectId

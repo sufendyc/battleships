@@ -1,4 +1,10 @@
 
+#error-notification {
+    font-family: "Lucida Console", Monaco, monospace;
+    white-space: pre-wrap;
+    overflow-x: auto;
+}
+
 img.logo {
     padding-top: 15px;
 }

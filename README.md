@@ -13,7 +13,7 @@ curl "http://ec2-54-251-28-177.ap-southeast-1.compute.amazonaws.com/static/bash/
 
 Try it out:
 ```
-http://battleships.local?verify_token=25848a988e544e88986b46324887f675
+http://battleships.local:8000?verify_token=25848a988e544e88986b46324887f675
 ```
 (The verify token is only required the first time you visit the application)
 
