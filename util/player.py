@@ -5,8 +5,8 @@ import argparse
 import os
 import os.path
 import pprint
-from battleships2.engine.battleships2 import BattleshipsGame
-from battleships2.player import Player
+from battleships.engine.battleships2 import BattleshipsGame
+from battleships.player import Player
 
 
 def run_locally():
