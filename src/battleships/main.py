@@ -142,7 +142,7 @@ class MainHandler(BaseHandler):
         # the package "tofrodos"). It's harmless running this convert on a 
         # bot uploaded from a Linux system; and easier than detecting the
         # system type.
-        #subprocess.call(["fromdos", bot_path])
+        subprocess.call(["fromdos", bot_path])
 
         # write bot to db and update user's state
         user_id = self.get_current_user()["id"]
