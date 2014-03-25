@@ -92,17 +92,19 @@ BoardManager.prototype.getNewGame = function(){
       },
       error: function(){
         self.removeLoading();
-        self.showError("Something has gone wrong.");
+        self.showError({error: "Server error"});
       }
     });
 };
 
-BoardManager.prototype.showError = function(message){
-    if(!message){
-        message = "Something has gone wrong.";
-    } else {
-        message = "There was an error processing this bot: " + message;
+BoardManager.prototype.showError = function(data){
+
+    // remove the history from the error message because it's big
+    if ("history" in data) {
+        delete data["history"];
     }
+
+    var message = JSON.stringify(data, undefined, 2);
     $('#error-notification > p').text(message);
     $('#error-notification').show();
 };
@@ -132,7 +134,7 @@ BoardManager.prototype.dataFromToken = function(token){
                 self.dataFromToken(self.currentToken);
             }, 250);
         } else if (data.data.success === false){
-            self.showError(data.data.error);
+            self.showError(data.data);
             self.removeLoading();
         } else {
             // Amend data to board
@@ -146,7 +148,7 @@ BoardManager.prototype.dataFromToken = function(token){
       },
       error: function(){
         self.removeLoading();
-        self.showError();
+        self.showError({error: "Server error"});
       }
     });
 };
@@ -204,6 +206,21 @@ var Board = function(ele, dimension, shipVisibilty){
 };
 
 Board.prototype.onData = function(data){
+
+    // TODO(lashworth) I've made this change to port the new response format
+    // to match the original. Feel free to refactor this.
+    var history = data.data.history;
+    history.shift(); // ignore initial state
+    var moves = [];
+    for (var i = 0; i < history.length; ++i) {
+        var bot_response = parseInt(history[i][1]);
+        var outcome = history[i][2].moves[bot_response];
+        moves.push([bot_response, outcome]);
+    }
+    data.data.moves = moves;
+
+    $("#num-moves").html(moves.length + " moves");
+
     this.data = data.data;
     this.renderOverlay(this.getShipPositions());
 };

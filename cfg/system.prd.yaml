@@ -4,8 +4,12 @@ fb-app-id:                  1378061279107332
 fb-app-secret:              71a15b3a8efd908bfd2ad1da88f928cd
 cookie-secret:              Rih8GE9FThWCLeoH2Sw7SnkeD8O1DkRsps6ndkH3ztw=
 num-games-per-tournament:   100
+port:                       80
 
 redis:
   host:                     localhost
   port:                     6379
 
+mongodb:
+  host:                     localhost
+  port:                     27017

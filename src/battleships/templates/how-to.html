@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Experian Battleships</title>
+    <title>Battleships</title>
     <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.4.1/pure-min.css">
     <link href="{{ static_url("css/main.css") }}" rel="stylesheet">
     <script src="{{ static_url("js/lib/jquery.min.js") }}"></script>
@@ -14,7 +14,7 @@
         <div class="pure-u-2-24"></div>
         <div class="pure-u-20-24">
 
-            <h1>Experian Battleships</h1>
+            <h1>Battleships</h1>
             <h2>Here's how to make a bot.</h2>
 
             <p>
@@ -29,11 +29,11 @@
                 It's passed to the bot file as a single comma-separated string. The numbers in the grid show the index positions of the squares in this comma-separated list. Each square has one of the following values:
             </p>
                 <pre>
+2 - Sunk
 1 - Hit
 0 - Unknown
 -1 - Miss
-2 - Sunk ship
-                </pre>
+</pre>
 
             <p>
                 The string received by the bot might look like:

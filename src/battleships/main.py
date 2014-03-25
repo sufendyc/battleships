@@ -1,11 +1,8 @@
-import datetime
 import httplib
 import logging.config
 import motor
 import os.path
 import subprocess
-import sys
-import time
 import tornado.auth
 import tornado.gen
 import tornado.ioloop
@@ -18,7 +15,6 @@ from battleships.data.bots import BotsDataAsync as BotsData
 from battleships.data.users import UsersDataAsync as UsersData
 from battleships.queues import QueueBotGame, QueueBotScoring
 from bson.objectid import ObjectId
-from operator import itemgetter
 
 
 class BaseHandler(tornado.web.RequestHandler):
@@ -35,11 +31,6 @@ class BaseHandler(tornado.web.RequestHandler):
 
 # WWW --------------------------------------------------------------------------
 
-MSG_NO_BOT = "Oops, looks like you didn't attach the bot file."
-MSG_BOT_RECEIVED = \
-"""We've received your bot and have queued it for scoring. This process takes \
-roughly 20 minutes, so check back then."""
-
 class AuthLoginHandler(BaseHandler, tornado.auth.FacebookGraphMixin):
     # authentication logic based on:
     # https://github.com/facebook/tornado/blob/master/demos/facebook/facebook.py
@@ -51,20 +42,20 @@ class AuthLoginHandler(BaseHandler, tornado.auth.FacebookGraphMixin):
             self.request.protocol,
             self.request.host,
             tornado.escape.url_escape(self.get_argument("next", "/")))
-        fb_app_id =         self.settings["fb_app_id"]
-        fb_app_secret =     self.settings["fb_app_secret"]
+        fb_app_id = self.settings["fb_app_id"]
+        fb_app_secret = self.settings["fb_app_secret"]
 
         if self.get_argument("code", False):
             self.get_authenticated_user(
-                redirect_uri=   redirect_uri,
-                client_id=      fb_app_id,
-                client_secret=  fb_app_secret,
-                code=           self.get_argument("code"),
-                callback=       self._on_auth)
+                redirect_uri=redirect_uri,
+                client_id=fb_app_id,
+                client_secret=fb_app_secret,
+                code=self.get_argument("code"),
+                callback=self._on_auth)
             return
         self.authorize_redirect(
-            redirect_uri=   redirect_uri,
-            client_id=      fb_app_id)
+            redirect_uri=redirect_uri,
+            client_id=fb_app_id)
 
     @tornado.web.asynchronous
     @tornado.gen.coroutine
@@ -80,7 +71,7 @@ class AuthLoginHandler(BaseHandler, tornado.auth.FacebookGraphMixin):
         user = yield db.read_by_facebook_id(facebook_data["id"])
 
         # first login for the user so authenticate them using the verify token
-        # then bind the Facebook account to the Experian account
+        # then bind the Facebook account to the authorised account
         if user is None:
             verify_token = self._get_verify_token()
             try:
@@ -120,7 +111,7 @@ class MainHandler(BaseHandler):
     @tornado.web.asynchronous
     @tornado.gen.coroutine
     def get(self):
-        """Render the homepage, including the leaderboard."""
+        """Render the homepage, including the leader board."""
         ranked_users = yield UsersData(self.settings["db"]).read_ranked_users() 
         current_user = self.get_current_user()
         self.render("main.html", 
@@ -135,7 +126,7 @@ class MainHandler(BaseHandler):
 
         # check a bot was uploaded
         if "bot_file" not in self.request.files:
-            self.render("msg.html", msg=MSG_NO_BOT)
+            self.render("msg-bot-missing.html")
 
         # save the bot file to disk and make it executable
         bot_id = ObjectId() 
@@ -151,7 +142,7 @@ class MainHandler(BaseHandler):
         # the package "tofrodos"). It's harmless running this convert on a 
         # bot uploaded from a Linux system; and easier than detecting the
         # system type.
-        subprocess.call(["fromdos", bot_path])
+        #subprocess.call(["fromdos", bot_path])
 
         # write bot to db and update user's state
         user_id = self.get_current_user()["id"]
@@ -163,7 +154,7 @@ class MainHandler(BaseHandler):
         QueueBotScoring.add(user_id, bot_id)
 
         # display the bot received alert informing the user what happens next
-        self.render("msg.html", msg=MSG_BOT_RECEIVED)
+        self.render("msg-bot-received.html", bot_id=bot_id)
 
 
 class HowToHandler(BaseHandler):
@@ -293,8 +284,11 @@ def main():
     # load config
     Conf.init()
 
-    # this must happend before we start accepting tornado requests
-    db = motor.MotorClient().open_sync().battleships
+    # this must happen before we start accepting tornado requests
+    db = motor.MotorClient(
+        host=Conf["mongodb"]["host"],
+        port=Conf["mongodb"]["port"],
+        ).open_sync().battleships
 
     # start processing background queues, each in a separate process
     QueueBotGame.start()
@@ -314,17 +308,17 @@ def main():
         (r"/auth/login/?",                      AuthLoginHandler),
         ],
 
-        log=            log,
-        db=             db,
-        cookie_secret=  Conf["cookie-secret"],
-        fb_app_id=      Conf["fb-app-id"],
-        fb_app_secret=  Conf["fb-app-secret"],
-        xsrf_cookies=   True,
-        login_url=      "/auth/login",
-        template_path=  os.path.join(os.path.dirname(__file__), "templates"),
-        static_path=    os.path.join(os.path.dirname(__file__), "static"),
+        log=log,
+        db=db,
+        cookie_secret=Conf["cookie-secret"],
+        fb_app_id=Conf["fb-app-id"],
+        fb_app_secret=Conf["fb-app-secret"],
+        xsrf_cookies=True,
+        login_url="/auth/login",
+        template_path=os.path.join(os.path.dirname(__file__), "templates"),
+        static_path=os.path.join(os.path.dirname(__file__), "static"),
         debug=True)
-    application.listen(80)
+    application.listen(Conf["port"])
     tornado.ioloop.IOLoop.instance().start()
 
 if __name__ == '__main__':

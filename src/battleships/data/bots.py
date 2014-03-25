@@ -2,6 +2,7 @@ import motor
 import pymongo
 import time
 import tornado.gen
+from battleships.conf import Conf
 
 
 class BotsDataAsync(object):
@@ -43,25 +44,32 @@ class BotsDataAsync(object):
 class BotsDataSync(object):
     """Sync access to the bots data, used by the worker process."""
 
-    _conn = pymongo.MongoClient().battleships.bots
+    @classmethod
+    def _get_conn(cls):
+        if not hasattr(cls, "_conn"):
+            cls._conn = pymongo.MongoClient(
+                host=Conf["mongodb"]["host"],
+                port=Conf["mongodb"]["port"],
+                ).battleships.bots
+        return cls._conn
 
     @classmethod
     def score_success(cls, bot_id, score):
-        doc = cls._conn.find_one(bot_id)
+        doc = cls._get_conn().find_one(bot_id)
         doc.update({
             "state":        _State.SCORE_SUCCESS,
             "score":        score,
             })
-        cls._conn.save(doc)
+        cls._get_conn().save(doc)
 
     @classmethod
     def score_error(cls, bot_id, game_seed):
-        doc = cls._conn.find_one(bot_id)
+        doc = cls._get_conn().find_one(bot_id)
         doc.update({
             "state":        _State.SCORE_ERROR,
             "game_seed":    game_seed,
             })
-        cls._conn.save(doc)
+        cls._get_conn().save(doc)
 
 
 class _State(object):

@@ -1,4 +1,5 @@
 .idea
 *.pyc
 *.swp
+.DS_Store
 conf/system.yaml
