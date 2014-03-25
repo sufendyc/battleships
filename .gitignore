@@ -2,5 +2,5 @@
 *.pyc
 *.swp
 .DS_Store
-conf/system.yaml
-conf/system.prd.yaml
+cfg/system.yaml
+cfg/system.prd.yaml
