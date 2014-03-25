@@ -26,3 +26,24 @@ Monitor the log:
 ```
 sudo tail -f /var/log/upstart/battleships.log
 ```
+
+## Running a bot locally
+
+```
+python battleships/util/player.py battleships path/to/your/bot
+```
+
+Which will give you a summary of the game, including error data if the bot fails:
+```
+{'bot_request': '0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0',
+ 'bot_response': 'x',
+ 'error_message': 'The bot made an illegal move',
+ 'error_type': 'BOT_MOVE_ILLEGAL',
+ 'game_seed': 0.8071676709968092,
+ 'success': False}
+```
+
+For a list of available options:
+```
+python battleships/util/player.py -h
+```
