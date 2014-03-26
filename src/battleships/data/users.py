@@ -66,11 +66,14 @@ class UsersDataAsync(object):
 
         # move users who have auth'd but not submitted a bot from the top of
         # the list to the bottom
-        while True:
-            doc = result[0]
+        scored = []
+        unscored = []
+        for doc in result:
             if "best_score" in doc and doc["best_score"]["score"]:
-                break
-            result.append(result.pop(0))
+                scored.append(doc)
+            else:
+                unscored.append(doc)
+        result = scored + unscored
 
         raise tornado.gen.Return(result) 
 
