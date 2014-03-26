@@ -56,14 +56,14 @@
 import sys
 
 def main():
-shot_grid = sys.argv[1].split(',')
-for i, state in enumerate(shot_grid):
-    if state == "0": # unknown
-        sys.stdout.write(str(i))
-        return
+    shot_grid = sys.argv[1].split(',')
+    for i, state in enumerate(shot_grid):
+        if state == "0": # unknown
+            sys.stdout.write(str(i))
+            return
 
 if __name__ == "__main__":
-main()
+    main()
 </pre>
                         </td>
                         <td>Bash
