@@ -9,31 +9,33 @@
                 <h1>Battleships</h1>
                 <h2>A global competition open to all; use programming to destroy evil and win prizes.</h2>
 
-                <table class="leaderboard pure-table pure-table-horizontal">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th width="55px">Player</th>
-                            <th></th>
-                            <th>Best Score</th>
-                            <th>State</th>
-                            <th>Last Scored</th>
-                        </tr>
-                    </thead>
+                <div class="table-responsive">
+                    <table class="leaderboard table table-hover table-striped">
+                        <thead>
+                            <tr class="info">
+                                <th>#</th>
+                                <th width="55px">Player</th>
+                                <th></th>
+                                <th>Best Score</th>
+                                <th>State</th>
+                                <th>Last Scored</th>
+                            </tr>
+                        </thead>
 
-                    <tbody>
-                    {% for i, user in enumerate(ranked_users) %}
-                        <tr data-player-id="{{ user["_id"] }}">
-                            <td>{{ i+1 }}</td>
-                            <td><img class="avatar" src="{{ user["facebook_data"]["picture"]["data"]["url"] }}"></td>
-                            <td>{{ user["facebook_data"]["name"] }}</td>
-                            <td>{{ user["best_score"]["score"] if "best_score" in user else "-" }}</td>
-                            <td>{{ user["state"] }}</span></td>
-                            <td><span data-timestamp="{{ user["last_score"]["time"] if "last_score" in user else "" }}"></span></td>
-                        </tr>
-                    {% end %}
-                    </tbody>
-                </table>
+                        <tbody>
+                        {% for i, user in enumerate(ranked_users) %}
+                            <tr data-player-id="{{ user["_id"] }}">
+                                <td>{{ i+1 }}</td>
+                                <td><img class="avatar" src="{{ user["facebook_data"]["picture"]["data"]["url"] }}"></td>
+                                <td>{{ user["facebook_data"]["name"] }}</td>
+                                <td>{{ user["best_score"]["score"] if "best_score" in user else "-" }}</td>
+                                <td>{{ user["state"] }}</span></td>
+                                <td><span data-timestamp="{{ user["last_score"]["time"] if "last_score" in user else "" }}"></span></td>
+                            </tr>
+                        {% end %}
+                        </tbody>
+                    </table>
+                </div>
 
         </div>
     </div>

@@ -16,37 +16,41 @@
                 </tr>
             </table>
 
-            <table class="bots pure-table pure-table-horizontal">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Uploaded</th>
-                        <th>Success</th>
-                        <th>Score</th>
-                    </tr>
-                </thead>
+            <div class="table-responsive">
+                <table class="bots table table-hover table-striped">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Uploaded</th>
+                            <th>Success</th>
+                            <th>Score</th>
+                        </tr>
+                    </thead>
 
-                <tbody>
-                {% for i, bot in sorted(enumerate(bots), reverse=True) %}
-                    <tr data-bot-id="{{ bot["_id"] }}">
-                        <td>{{ i+1 }}</td>
-                        <td><span data-timestamp="{{ bot["created_time"] }}"></span></td>
-                        <td>{{ {"pending": "Pending", "success": "Yes", "error": "No"}[bot["state"]] }}</td>
-                        <td>{{ bot["score"] if bot["state"] == "success" else "-" }}</td>
-                    </tr>
-                {% end %}
-                </tbody>
-            </table>
+                    <tbody>
+                    {% for i, bot in sorted(enumerate(bots), reverse=True) %}
+                        <tr data-bot-id="{{ bot["_id"] }}">
+                            <td>{{ i+1 }}</td>
+                            <td><span data-timestamp="{{ bot["created_time"] }}"></span></td>
+                            <td>{{ {"pending": "Pending", "success": "Yes", "error": "No"}[bot["state"]] }}</td>
+                            <td>{{ bot["score"] if bot["state"] == "success" else "-" }}</td>
+                        </tr>
+                    {% end %}
+                    </tbody>
+                </table>
+            </div>
 
 
             <h1>Upload a bot</h1>
-            <form method="POST" enctype="multipart/form-data" class="pure-form" role="form">
-                <fieldset>
-                    <input type="file" name="bot_file" style="height: 30px; font-size:12px">
-                    <button type="submit" class="btn btn-primary">Upload my bot</button>
-                    <a href="/how-to"><button id="how-to-button" type="button" class="btn btn-primary">How do I make a bot?</button></a>
-                </fieldset>
-                {% raw xsrf_form_html() %}
+            <form method="POST" enctype="multipart/form-data" role="form">
+                <div class="form-group">
+                    <fieldset>
+                        <input type="file" name="bot_file" style="height: 30px; font-size:12px">
+                        <button type="submit" class="btn btn-primary">Upload my bot</button>
+                        <a href="/how-to"><button id="how-to-button" type="button" class="btn btn-primary">How do I make a bot?</button></a>
+                    </fieldset>
+                    {% raw xsrf_form_html() %}
+                </div>
             </form>
         </div>
     </div>
