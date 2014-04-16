@@ -118,43 +118,6 @@ class MainHandler(BaseHandler):
             ranked_users=ranked_users, 
             current_user=current_user) 
 
-    @tornado.web.authenticated
-    @tornado.web.asynchronous
-    @tornado.gen.coroutine
-    def post(self):
-        """Receive a posted bot file."""
-
-        # check a bot was uploaded
-        if "bot_file" not in self.request.files:
-            self.render("msg-bot-missing.html")
-
-        # save the bot file to disk and make it executable
-        bot_id = ObjectId() 
-        bot_file_content = self.request.files["bot_file"][0]["body"]
-        bot_path = "%s/%s" % (Conf["bot-path"], str(bot_id))
-        f = open(bot_path, "w")
-        f.write(bot_file_content)
-        f.close()
-        os.chmod(bot_path, 0744)
-        
-        # Bot files uploaded from a Windows system cannot natively be executed
-        # on a Linux system so run all files through this converter (from
-        # the package "tofrodos"). It's harmless running this convert on a 
-        # bot uploaded from a Linux system; and easier than detecting the
-        # system type.
-        subprocess.call(["fromdos", bot_path])
-
-        # write bot to db and update user's state
-        user_id = self.get_current_user()["id"]
-        db = self.settings["db"]
-        yield BotsData(db).add(bot_id, user_id)
-        yield UsersData(db).set_state_to_scoring(user_id)
-
-        # put the bot in the queue for scoring
-        QueueBotScoring.add(user_id, bot_id)
-
-        # display the bot received alert informing the user what happens next
-        self.render("msg-bot-received.html", bot_id=bot_id)
 
 
 class HowToHandler(BaseHandler):
@@ -162,7 +125,7 @@ class HowToHandler(BaseHandler):
     @tornado.web.authenticated
     def get(self):
         """Render the how to page."""
-        self.render("how-to.html")
+        self.render("how-to.html", user_id=self.get_current_user()['id'])
 
 
 class GamesHandler(BaseHandler):
@@ -235,7 +198,46 @@ class PlayersHandler(APIBaseHandler):
         db = self.settings["db"]
         user = yield UsersData(db).read(user_id)
         bots = yield BotsData(db).read_by_user(user_id)
-        self.render("players.html", user=user, bots=bots) 
+        self.render("players.html", user=user, bots=bots)
+
+
+    @tornado.web.authenticated
+    @tornado.web.asynchronous
+    @tornado.gen.coroutine
+    def post(self, user_id):
+        """Receive a posted bot file."""
+
+        # check a bot was uploaded
+        if "bot_file" not in self.request.files:
+            self.render("msg-bot-missing.html", user_id=user_id)
+
+        # save the bot file to disk and make it executable
+        bot_id = ObjectId()
+        bot_file_content = self.request.files["bot_file"][0]["body"]
+        bot_path = "%s/%s" % (Conf["bot-path"], str(bot_id))
+        f = open(bot_path, "w")
+        f.write(bot_file_content)
+        f.close()
+        os.chmod(bot_path, 0744)
+
+        # Bot files uploaded from a Windows system cannot natively be executed
+        # on a Linux system so run all files through this converter (from
+        # the package "tofrodos"). It's harmless running this convert on a
+        # bot uploaded from a Linux system; and easier than detecting the
+        # system type.
+        subprocess.call(["fromdos", bot_path])
+
+        # write bot to db and update user's state
+        user_id = self.get_current_user()["id"]
+        db = self.settings["db"]
+        yield BotsData(db).add(bot_id, user_id)
+        yield UsersData(db).set_state_to_scoring(user_id)
+
+        # put the bot in the queue for scoring
+        QueueBotScoring.add(user_id, bot_id)
+
+        # display the bot received alert informing the user what happens next
+        self.render("msg-bot-received.html", bot_id=bot_id, user_id=user_id)
 
 
 class BotGameRequestHandler(APIBaseHandler):

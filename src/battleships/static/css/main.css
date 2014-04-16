@@ -35,7 +35,7 @@ p,
 pre,
 .pure-button,
 input {
-    font-size: 70%;
+    font-size: 1.2em;
 }
 
 table {
@@ -50,21 +50,20 @@ table tr[data-player-id] {
 table.samples {
     margin-top: 2em;
     margin-bottom: 2em;
-    font-size: 70%;
+    font-size: 1.5em;
 }
 
 table.bots {
     margin-top: 2em;
-    font-size: 70%;
+    font-size: 1.5em;
 }
 
 table.leaderboard {
     margin-top: 2em;
-    font-size: 70%;
+    font-size: 1.5em;
 }
 
 table.samples tr td {
-    padding: 1em 0 1em 3em;
     vertical-align: top;
 }
 

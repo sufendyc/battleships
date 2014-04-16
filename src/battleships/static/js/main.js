@@ -15,12 +15,6 @@ $(document).ready(function() {
     });
 
     // wire up buttons
-    $("#how-to-button").click(function() {
-        window.location.href = "/how-to";
-    });
-    $("#home").click(function() {
-        window.location.href = "/";
-    });
     $("[data-player-id]").click(function() {
         var playerId = $(this).attr("data-player-id");
         window.location.href = "/players/" + playerId;
