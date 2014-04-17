@@ -27,12 +27,11 @@ class Scorer(object):
             scores = []
             times = []
             for i in range(num_games):
-                start_time = time.time()
                 game_result = runner_game.play(bot_path)
                 if not game_result["success"]:
                     raise _ScoringException(game_result)
 
-                times.append(time.time() - start_time)
+                times.append(game_result["time_elapsed"])
                 scores.append(game_result["score"])
                 cls._log.info("%s played %s/%s" % (bot_path, i+1, num_games))
 
