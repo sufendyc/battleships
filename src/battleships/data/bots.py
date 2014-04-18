@@ -54,11 +54,12 @@ class BotsDataSync(object):
         return cls._conn
 
     @classmethod
-    def score_success(cls, bot_id, score):
+    def score_success(cls, bot_id, score, avg_time):
         doc = cls._get_conn().find_one(bot_id)
         doc.update({
             "state":        _State.SCORE_SUCCESS,
             "score":        score,
+            "avg_time":     avg_time,
             })
         cls._get_conn().save(doc)
 
