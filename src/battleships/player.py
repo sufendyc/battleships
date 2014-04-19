@@ -2,7 +2,7 @@ import random
 import signal
 import subprocess
 import traceback
-
+import time
 
 class Player(object):
 
@@ -27,6 +27,7 @@ class Player(object):
         bot_request = None
 
         try:
+            start_time = time.time()
             while not game.is_complete():
                 bot_request = game.get_next_bot_request()
                 bot_response = self._call_bot(bot_path, bot_request)
@@ -36,10 +37,12 @@ class Player(object):
                 game_state = game.get_state()
                 history.append((bot_request, bot_response, game_state))
 
+            time_elapsed = time.time() - start_time
             score = game.get_score()
             result = {
                 "success":          True,
                 "score":            score,
+                "time_elapsed":     time_elapsed,
                 "history":          history,
                 "game_seed":        game_seed,
                 }

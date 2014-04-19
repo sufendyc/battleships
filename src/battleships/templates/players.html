@@ -24,6 +24,7 @@
                             <th>Uploaded</th>
                             <th>Success</th>
                             <th>Score</th>
+                            <th>Avg Time</th>
                         </tr>
                     </thead>
 
@@ -34,6 +35,7 @@
                             <td><span data-timestamp="{{ bot["created_time"] }}"></span></td>
                             <td>{{ {"pending": "Pending", "success": "Yes", "error": "No"}[bot["state"]] }}</td>
                             <td>{{ bot["score"] if bot["state"] == "success" else "-" }}</td>
+                            <td>{{ bot["avg_time"] if bot["state"] == "success" else "-" }}</td>
                         </tr>
                     {% end %}
                     </tbody>

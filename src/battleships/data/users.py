@@ -58,7 +58,8 @@ class UsersDataAsync(object):
             "facebook_data.picture.data.url",
             "state",
             "last_score.time",
-            "best_score.score"], 1)
+            "best_score.score",
+            "best_score.avg_time"], 1)
         cursor = self._conn.find(
             {"facebook_data": {"$exists": True}}, # only auth'd users
             projection).sort("best_score.score")
@@ -100,7 +101,7 @@ class UsersDataSync(object):
         return cls._conn
 
     @classmethod
-    def set_state_to_scored_success(cls, user_id, bot_id, score):
+    def set_state_to_scored_success(cls, user_id, bot_id, score, avg_time):
 
         now = long(time.time())
         doc = cls._get_conn().find_one(user_id)
@@ -114,6 +115,7 @@ class UsersDataSync(object):
             doc.update({
                 "best_score": {
                     "score":        score,
+                    "avg_time":     avg_time,
                     "bot_id":       bot_id,
                     },
                 "state":            _State.BEST,
