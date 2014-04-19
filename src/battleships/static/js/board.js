@@ -107,10 +107,12 @@ BoardManager.prototype.showError = function(data){
     var message = JSON.stringify(data, undefined, 2);
     $('#error-notification > p').text(message);
     $('#error-notification').show();
+    $('#error-notification').removeClass('hide');
 };
 
 BoardManager.prototype.hideError = function(){
     $('#error-notification').hide();
+    $('#error-notification').addClass('hide');
 };
 
 BoardManager.prototype.renderLoading = function(){
