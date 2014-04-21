@@ -1,12 +1,13 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Battleships</title>
+{% extends "base.html" %}
+
+{% block title %}Battleships | My Bots{% end %}
+{% block css %}
     <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.4.1/pure-min.css">
     <link href="{{ static_url("css/main.css") }}" rel="stylesheet">
     <link href="{{ static_url("css/custom.css") }}" rel="stylesheet">
+    <link href="{{ static_url("css/bootstrap.min.css") }}" rel="stylesheet">
+{% end %}
+{% block js %}
     <script src="{{ static_url("js/lib/jquery.min.js") }}"></script>
     <script src="{{ static_url("js/main.js") }}"></script>
     <script src="{{ static_url("js/lib/lodash.js") }}"></script>
@@ -14,11 +15,11 @@
     <script src="{{ static_url("js/lib/d3.js")}}"></script>
     <script src="{{ static_url("js/utils.js") }}"></script>
     <script src="{{ static_url("js/board.js") }}"></script>
-</head>
-<body>
-    <div class="pure-g">
-        <div class="pure-u-2-24"></div>
-        <div class="pure-u-20-24">
+{% end %}
+
+{% block body %}
+    <div class="container">
+        <div class="row">
 
             <h1>Battleships</h1>
 
@@ -27,8 +28,8 @@
                     <td width="75px"><img class="avatar" src="{{ user["facebook_data"]["picture"]["data"]["url"] }}"></td>
                     <td><h2>{{ user["facebook_data"]["name"] }}'s Bot {{ str(bot["_id"]) }}</h2></td>
                     <td style="text-align: right;">
-                        <button id="bots" data-player-id="{{ user["_id"] }}" type="button" class="pure-button pure-button-primary">{{ user["facebook_data"]["name"] }}'s Bots</button>
-                        <button id="home" type="button" class="pure-button pure-button-primary">Leaderboard</button>
+                        <a href="/players/{{user["_id"]}}"><button id="bots" data-player-id="{{ user["_id"] }}" type="button" class="btn btn-primary">{{ user["facebook_data"]["name"] }}'s Bots</button></a>
+                        <a href="/"><button id="home" type="button" class="btn btn-primary">Leaderboard</button></a>
                     </td>
                 </tr>
             </table>
@@ -42,15 +43,13 @@
                 <div>
             </div>
             <div>
-                <button id="game-start" type="button" class="pure-button pure-button-primary">New</button>
-                <button id="replay" type="button" class="pure-button pure-button-primary">Replay</button>
+                <button id="game-start" type="button" class="btn btn-primary">New</button>
+                <button id="replay" type="button" class="btn btn-primary">Replay</button>
                 <span id="num-moves"></span>
             </div>
             <div id="total-time">
             </div>
         </div>
-        <div class="pure-u-2-24"></div>
     </div>
     <div class="loading" class="hide"></div>
-</body>
-</html>
+{% end %}
