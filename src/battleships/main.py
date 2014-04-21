@@ -198,8 +198,13 @@ class PlayersHandler(APIBaseHandler):
         db = self.settings["db"]
         user = yield UsersData(db).read(user_id)
         bots = yield BotsData(db).read_by_user(user_id)
-        self.render("players.html", user=user, bots=bots)
-
+        bots.reverse() # most recent first
+        is_current_user = user_id == self.get_current_user()["id"]
+        self.render(
+            "players.html",
+            user=user,
+            bots=bots,
+            is_current_user=is_current_user)
 
     @tornado.web.authenticated
     @tornado.web.asynchronous

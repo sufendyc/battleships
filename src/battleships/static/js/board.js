@@ -222,7 +222,7 @@ Board.prototype.onData = function(data){
     data.data.moves = moves;
 
     $("#num-moves").html(moves.length + " moves");
-    $("#total-time").html("time : " + data.data.time_elapsed + " seconds");
+    $("#total-time").html("time : " + parseFloat(data.data.time_elapsed).toFixed(2) + " seconds");
 
     this.data = data.data;
     this.renderOverlay(this.getShipPositions());
